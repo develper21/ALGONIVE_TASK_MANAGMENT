@@ -2,6 +2,7 @@ import React, { useContext, useState } from "react";
 import AuthLayout from "../../components/layouts/AuthLayout";
 import { Link, useNavigate } from "react-router-dom";
 import ProfilePhotoSelector from "../../components/Inputs/ProfilePhotoSelector";
+import { useNotification } from "../../context/NotificationContext";
 import Input from "../../components/Inputs/Input";
 import { validateEmail } from "../../utils/helper";
 import uploadImage from "../../utils/uploadImage";
@@ -17,6 +18,7 @@ const SignUp = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [adminInviteToken, setAdminInviteToken] = useState("");
+  const { addNotification } = useNotification();
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -70,12 +72,15 @@ const SignUp = () => {
           navigate("/user/dashboard");
         }
       }
+      addNotification({
+        message: "Signup successfull! Please login to continue.",
+        type: "success",
+      })
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-      } else {
-        setError("Something went wrong, please try again later.");
-      }
+      addNotification({
+        message: err.response?.data?.message || "Something went wrong. Please try again later.",
+        type: "error",
+      })
     } finally {
       setLoading(false);
     }
