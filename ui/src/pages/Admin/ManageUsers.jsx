@@ -4,10 +4,11 @@ import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { LuFileSpreadsheet } from "react-icons/lu";
 import UserCard from "../../components/Cards/UserCard";
-import toast from "react-hot-toast";
+import { useNotification } from "../../context/NotificationContext";
 
 const ManageUsers = () => {
   const [allUsers, setAllUsers] = useState([]);
+  const { addNotification } = useNotification();
 
   const getAllUsers = async () => {
     try {
@@ -17,6 +18,10 @@ const ManageUsers = () => {
       }
     } catch (error) {
       console.error("Error Fetching Users", error);
+      addNotification({ 
+        message: error.response?.data?.message || "Failed to fetch users", 
+        type: "error" 
+      });
     }
   };
 
@@ -36,10 +41,16 @@ const ManageUsers = () => {
       link.click();
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
-
+      addNotification({ 
+        message: "User details downloaded successfully", 
+        type: "success" 
+      });
     } catch (error) {
       console.error("Error downloading User Details: ", error);
-      toast.error("Failed to download User Details, please try again");
+      addNotification({ 
+        message: "Failed to download User Details, please try again", 
+        type: "error" 
+      });
     }
   };
 
