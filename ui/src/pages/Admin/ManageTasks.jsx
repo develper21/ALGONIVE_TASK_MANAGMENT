@@ -7,7 +7,7 @@ import { Label } from "recharts";
 import { LuFileSpreadsheet } from "react-icons/lu";
 import TaskStatusTabs from "../../components/TaskStatusTabs";
 import TaskCard from "../../components/Cards/TaskCard";
-import toast from "react-hot-toast";
+import { useNotification } from "../../context/NotificationContext";
 
 const ManageTasks = () => {
   const [allTasks, setAllTasks] = useState([]);
@@ -15,6 +15,7 @@ const ManageTasks = () => {
   const [filterStatus, setFilterStatus] = useState("All");
 
   const navigate = useNavigate();
+  const { addNotification } = useNotification();
 
   const getAllTasks = async () => {
     try {
@@ -39,6 +40,10 @@ const ManageTasks = () => {
       setTabs(statusArray);
     } catch (error) {
       console.error("Error Fetching Users", error);
+      addNotification({ 
+        message: error.response?.data?.message || "Failed to fetch tasks", 
+        type: "error" 
+      });
     }
   };
 
@@ -62,9 +67,16 @@ const ManageTasks = () => {
       link.click();
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
+      addNotification({ 
+        message: "Task details downloaded successfully", 
+        type: "success" 
+      });
     } catch (error) {
       console.error("Error downloading Task Details: ", error);
-      toast.error("Failed to download Task Details, please try again");
+      addNotification({ 
+        message: "Failed to download Task Details, please try again", 
+        type: "error" 
+      });
     }
   };
 
