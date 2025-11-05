@@ -12,6 +12,7 @@ import { LuArrowRight } from "react-icons/lu";
 import TaskListTable from "../../components/TaskListTable";
 import CustomPieChart from "../../components/Charts/CustomPieChart";
 import CustomBarChart from "../../components/Charts/CustomBarChart";
+import { useNotification } from "../../context/NotificationContext";
 
 const COLORS = ["#8D51FF", "#00B8DB", "#7BCE00"];
 
@@ -21,6 +22,7 @@ const UserDashboard = () => {
   const { user } = useContext(UserContext);
 
   const navigate = useNavigate();
+  const { addNotification } = useNotification();
 
   const [dashboardData, setDashboardData] = useState(null);
   const [pieChartData, setPieChartData] = useState([]);
@@ -59,6 +61,10 @@ const UserDashboard = () => {
       }
     } catch (error) {
       console.error("Error Fetching Users", error);
+      addNotification({ 
+        message: error.response?.data?.message || "Failed to fetch dashboard data", 
+        type: "error" 
+      });
     }
   };
 
