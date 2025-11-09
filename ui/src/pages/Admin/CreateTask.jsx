@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import DashboardLayout from "../../components/layouts/DashboardLayout";
+import NewDashboardLayout from "../../components/layouts/NewDashboardLayout";
 import { PRIORITY_DATA } from "../../utils/data";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
@@ -215,7 +215,7 @@ const CreateTask = () => {
   }, [taskId]);
 
   return (
-    <DashboardLayout activeMenu="Create Task">
+    <NewDashboardLayout activeMenu="Create Task">
       <div className="mt-5">
         <div className="grid grid-cols-1 md:grid-cols-4 mt-4">
           <div className="form-card col-span-3">
@@ -346,7 +346,7 @@ const CreateTask = () => {
           onDelete={() => deleteTask()}
         />
       </Model>
-    </DashboardLayout>
+    </NewDashboardLayout>
   );
 };
 

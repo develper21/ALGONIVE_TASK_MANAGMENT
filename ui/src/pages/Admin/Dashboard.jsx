@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useUserAuth } from "../../hooks/useUserAuth";
 import { UserContext } from "../../context/userContext";
-import DashboardLayout from "../../components/layouts/DashboardLayout";
+import NewDashboardLayout from "../../components/layouts/NewDashboardLayout";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
@@ -79,12 +79,12 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <DashboardLayout activeMenu="Dashboard">
-      <div className="card my-5">
+    <NewDashboardLayout activeMenu="Dashboard">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6 mb-6">
         <div>
           <div className="col-span-3">
-            <h2 className="text-xl md:text-2xl">Welcome Back! {user?.name} </h2>
-            <p className="text-xs md:text-[13px] text-gray-400 mt-1.5">
+            <h2 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white">Welcome Back! {user?.name} </h2>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mt-1.5">
               {moment().format("dddd Do MMM YYYY")}
             </p>
           </div>
@@ -125,26 +125,26 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-4 md:my-6">
         <div>
-          <div className="card">
-            <div className="flex items-center justify-between">
-              <h5 className="font-medium">Task Distribution</h5>
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h5 className="font-semibold text-gray-900 dark:text-white">Task Distribution</h5>
             </div>
             <CustomPieChart data={pieChartData} colors={COLORS} />
           </div>
         </div>
         <div>
-          <div className="card">
-            <div className="flex items-center justify-between">
-              <h5 className="font-medium">Task Priority Levels</h5>
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h5 className="font-semibold text-gray-900 dark:text-white">Task Priority Levels</h5>
             </div>
             <CustomBarChart data={barChartData} />
           </div>
         </div>
 
         <div className="md:col-span-2">
-          <div className="card">
-            <div className="flex items-center justify-between ">
-              <h5 className="text-lg">Recent Tasks</h5>
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h5 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Tasks</h5>
               <button className="card-btn" onClick={onSeeMore}>
                 See All <LuArrowRight className="text-base" />
               </button>
@@ -153,7 +153,7 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </NewDashboardLayout>
   );
 };
 
