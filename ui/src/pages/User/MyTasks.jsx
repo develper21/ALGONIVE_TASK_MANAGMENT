@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import DashboardLayout from "../../components/layouts/DashboardLayout";
+import NewDashboardLayout from "../../components/layouts/NewDashboardLayout";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
@@ -13,10 +13,8 @@ const MyTasks = () => {
   const [allTasks, setAllTasks] = useState([]);
   const [tabs, setTabs] = useState([]);
   const [filterStatus, setFilterStatus] = useState("All");
-
   const navigate = useNavigate();
   const { addNotification } = useNotification();
-
   const getAllTasks = async () => {
     try {
       const response = await axiosInstance.get(API_PATHS.TASKS.GET_ALL_TASKS, {
@@ -25,11 +23,13 @@ const MyTasks = () => {
         },
       });
 
+      if (!response || !response.data) {
+        throw new Error("Invalid response from server");
+      }
+
       setAllTasks(response.data?.tasks?.length > 0 ? response.data?.tasks : []);
 
-      // Map statusSummary data for fixed labels and order
       const statusSummary = response.data?.statusSummary || {};
-
       const statusArray = [
         { label: "All", count: statusSummary.all || 0 },
         { label: "Pending", count: statusSummary.pendingTasks || 0 },
@@ -39,9 +39,16 @@ const MyTasks = () => {
 
       setTabs(statusArray);
     } catch (error) {
-      console.error("Error Fetching Users", error);
+      console.error("Error Fetching Tasks", error);
+      setAllTasks([]);
+      setTabs([
+        { label: "All", count: 0 },
+        { label: "Pending", count: 0 },
+        { label: "In Progress", count: 0 },
+        { label: "Completed", count: 0 },
+      ]);
       addNotification({ 
-        message: error.response?.data?.message || "Failed to fetch tasks", 
+        message: error.response?.data?.message || error.message || "Failed to fetch tasks", 
         type: "error" 
       });
     }
@@ -57,7 +64,7 @@ const MyTasks = () => {
   }, [filterStatus]);
 
   return (
-    <DashboardLayout activeMenu="My Tasks">
+    <NewDashboardLayout activeMenu="My Tasks">
       <div className="my-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between">
           <h2 className="text-xl md:text-xl font-medium">My Tasks</h2>
@@ -93,7 +100,7 @@ const MyTasks = () => {
           ))}
         </div>
       </div>
-    </DashboardLayout>
+    </NewDashboardLayout>
   );
 };
 

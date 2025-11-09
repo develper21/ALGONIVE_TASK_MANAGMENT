@@ -2,11 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import DashboardLayout from "../../components/layouts/DashboardLayout";
+import NewDashboardLayout from "../../components/layouts/NewDashboardLayout";
 import moment from "moment";
 import AvatarGroup from "../../components/AvatarGroup";
 import { LuSquareArrowOutUpRight } from "react-icons/lu";
 import { useNotification } from "../../context/NotificationContext";
+import TaskDiscussion from "../../components/TaskDiscussion";
 
 const ViewTaskDetails = () => {
   const { id } = useParams();
@@ -92,11 +93,11 @@ const ViewTaskDetails = () => {
   }, [id]);
 
   return (
-    <DashboardLayout activeMenu="My Tasks">
+    <NewDashboardLayout activeMenu="My Tasks">
       <div className="mt-5">
         {task && (
-          <div className="grid grid-cols-1 md:grid-cols-4 mt-4">
-            <div className="form-card col-span-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
+            <div className="form-card lg:col-span-2">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm md:text-xl font-medium">
                   {task?.title}
@@ -181,10 +182,15 @@ const ViewTaskDetails = () => {
                 </div>
               )}
             </div>
+
+            {/* Discussion Panel */}
+            <div className="lg:col-span-1">
+              <TaskDiscussion taskId={id} taskTitle={task?.title} />
+            </div>
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </NewDashboardLayout>
   );
 };
 
