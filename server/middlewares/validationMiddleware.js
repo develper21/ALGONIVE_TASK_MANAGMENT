@@ -32,7 +32,8 @@ const validateRegistration = (req, res, next) => {
 
   // Sanitize inputs
   req.body.name = name.trim();
-  req.body.email = validator.normalizeEmail(email);
+  const normalizedEmail = validator.normalizeEmail(email);
+  req.body.email = normalizedEmail || email.toLowerCase().trim();
 
   next();
 };
@@ -54,7 +55,8 @@ const validateLogin = (req, res, next) => {
     return res.status(400).json({ message: "Validation failed", errors });
   }
 
-  req.body.email = validator.normalizeEmail(email);
+  const normalizedEmail = validator.normalizeEmail(email);
+  req.body.email = normalizedEmail || email.toLowerCase().trim();
 
   next();
 };
@@ -152,7 +154,10 @@ const validateProfileUpdate = (req, res, next) => {
 
   // Sanitize inputs
   if (name) req.body.name = name.trim();
-  if (email) req.body.email = validator.normalizeEmail(email);
+  if (email) {
+    const normalizedEmail = validator.normalizeEmail(email);
+    req.body.email = normalizedEmail || email.toLowerCase().trim();
+  }
 
   next();
 };
