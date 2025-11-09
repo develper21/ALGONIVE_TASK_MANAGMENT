@@ -12,7 +12,7 @@ const generateToken = (userId) => {
 // @access public
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, profileImageUrl, adminInviteToken } =
+    const { name, email, password, profileImageUrl, gender, adminInviteToken } =
       req.body;
 
     // check if user already exists
@@ -23,11 +23,12 @@ const registerUser = async (req, res) => {
 
     // determine user role: admin if correct token is provided otherwise member
     let role = "member";
-    if (
-      adminInviteToken &&
-      adminInviteToken == process.env.ADMIN_INVITE_TOKEN
-    ) {
-      role = "admin";
+    if (adminInviteToken) {
+      if (adminInviteToken === process.env.ADMIN_INVITE_TOKEN) {
+        role = "admin";
+      } else {
+        return res.status(400).json({ message: "Invalid admin invite token" });
+      }
     }
 
     // hash password (encryption)
@@ -40,6 +41,7 @@ const registerUser = async (req, res) => {
       email,
       password: hashPassword,
       profileImageUrl,
+      gender: gender || "male",
       role,
     });
 
@@ -50,6 +52,8 @@ const registerUser = async (req, res) => {
       email: user.email,
       role: user.role,
       profileImageUrl: user.profileImageUrl,
+      profileDisplayUrl: user.profileDisplayUrl,
+      gender: user.gender,
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -83,6 +87,8 @@ const loginUser = async (req, res) => {
       email: user.email,
       role: user.role,
       profileImageUrl: user.profileImageUrl,
+      profileDisplayUrl: user.profileDisplayUrl,
+      gender: user.gender,
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -119,6 +125,8 @@ const updateUserProfile = async (req, res) => {
 
     user.name = req.body.name || user.name;
     user.email = req.body.email || user.email;
+    user.gender = req.body.gender || user.gender;
+    user.profileImageUrl = req.body.profileImageUrl !== undefined ? req.body.profileImageUrl : user.profileImageUrl;
 
     if (req.body.password) {
       const salt = await bcrypt.genSalt(10);
@@ -132,6 +140,9 @@ const updateUserProfile = async (req, res) => {
       name: updatedUser.name,
       email: updatedUser.email,
       role: updatedUser.role,
+      profileImageUrl: updatedUser.profileImageUrl,
+      profileDisplayUrl: updatedUser.profileDisplayUrl,
+      gender: updatedUser.gender,
       token: generateToken(updatedUser._id),
     });
   } catch (error) {
