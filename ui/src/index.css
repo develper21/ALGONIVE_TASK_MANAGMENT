@@ -1,10 +1,13 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Poppins", "sans-serif";
+  --font-display: "Inter", "sans-serif";
   --breakpoint-3xl: 1920px;
-  --primary-color: #1368ec;
+  --primary-color: #4f46e5;
+  --secondary-color: #10b981;
+  --github-dark: #0d1117;
+  --sidebar-light: #f9fafb;
+  --sidebar-dark: #1e293b;
 }
 
 @layer base {
@@ -13,8 +16,12 @@
   }
 
   body {
-    background-color: #fcfbfc;
+    background-color: #f9fafb;
     overflow-x: hidden;
+  }
+
+  body.dark {
+    background-color: #0d1117;
   }
 }
 
@@ -32,19 +39,19 @@
 }
 
 .btn-primary {
-  @apply w-full text-sm font-medium text-white bg-blue-600 shadow-lg shadow-purple-600/5 p-[10px] rounded-md my-1 hover:bg-blue-600/15 hover:text-blue-600 cursor-pointer;
+  @apply w-full text-sm font-semibold text-white bg-indigo-600 shadow-lg p-[10px] rounded-md my-1 hover:bg-indigo-700 cursor-pointer transition-colors;
 }
 
 .card {
-  @apply bg-white p-6 rounded-2xl shadow-md shadow-gray-100 border border-gray-200/50;
+  @apply bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700;
 }
 
 .card-btn {
-  @apply flex items-center gap-3 text-[12px] font-medium text-gray-700 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 px-4 py-1.5 rounded-lg border border-gray-200/50 cursor-pointer;
+  @apply flex items-center gap-3 text-[12px] font-medium text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 bg-gray-50 dark:bg-slate-700 hover:bg-indigo-50 dark:hover:bg-slate-600 px-4 py-1.5 rounded-md border border-gray-200 dark:border-slate-600 cursor-pointer transition-colors;
 }
 
 .card-btn-fill {
-  @apply flex items-center gap-3 text-[12px] font-medium text-white hover:text-blue-600 bg-blue-600 hover:bg-blue-50 px-4 py-1.5 rounded-lg border border-blue-600 cursor-pointer;
+  @apply flex items-center gap-3 text-[12px] font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 rounded-md cursor-pointer transition-colors;
 }
 
 .form-card {
