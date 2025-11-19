@@ -23,9 +23,11 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+const normalizeOrigin = (origin = '') => origin.replace(/\/$/, '');
+
 const parseOrigins = (value = '') => value
   .split(',')
-  .map((origin) => origin.trim())
+  .map((origin) => normalizeOrigin(origin.trim()))
   .filter(Boolean);
 
 const allowedOrigins = [
@@ -41,7 +43,9 @@ const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+    const normalizedOrigin = normalizeOrigin(origin);
+
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(normalizedOrigin)) {
       return callback(null, true);
     }
 
