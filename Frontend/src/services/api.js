@@ -62,6 +62,14 @@ export const taskAPI = {
   update: (id, data) => api.put(`/tasks/${id}`, data),
   delete: (id) => api.delete(`/tasks/${id}`),
   getStats: () => api.get('/tasks/stats/dashboard'),
+  getActivityFeed: (params) => api.get('/tasks/activity/feed', { params }),
+  getAttachments: (taskId) => api.get(`/tasks/${taskId}/attachments`),
+  uploadAttachments: (taskId, formData) => api.post(`/tasks/${taskId}/attachments`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  downloadAttachment: (attachmentId) => api.get(`/tasks/attachments/${attachmentId}/download`, {
+    responseType: 'blob'
+  })
 };
 
 // Notification APIs
