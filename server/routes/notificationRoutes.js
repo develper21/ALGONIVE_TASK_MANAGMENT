@@ -19,6 +19,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
     const notifications = await Notification.find(query)
       .populate('task', 'title status')
+      .populate('actor', 'name email avatar role')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit));
 
