@@ -5,6 +5,7 @@ import {
   KanbanSquare,
   PlusCircle,
   MessageSquare,
+  Settings,
   X
 } from 'lucide-react';
 
@@ -58,6 +59,26 @@ const SidebarNav = ({ onNavigate }) => (
   </nav>
 );
 
+const SettingsButton = ({ onNavigate }) => (
+  <NavLink
+    to="/settings"
+    onClick={onNavigate}
+    className={({ isActive }) =>
+      `flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors border ${
+        isActive
+          ? 'bg-primary-50 text-primary-700 border-primary-100 shadow-sm'
+          : 'text-gray-700 border-gray-200 hover:bg-gray-50'
+      }`
+    }
+  >
+    <Settings size={18} />
+    <div className="flex flex-col">
+      <span>System Settings</span>
+      <span className="text-xs font-normal text-gray-500">Logic & security</span>
+    </div>
+  </NavLink>
+);
+
 const Sidebar = ({ isOpen, onClose }) => {
   return (
     <>
@@ -91,6 +112,9 @@ const Sidebar = ({ isOpen, onClose }) => {
         </div>
         <div className="px-4 py-6 overflow-y-auto h-full">
           <SidebarNav onNavigate={onClose} />
+          <div className="mt-6 border-t border-gray-200 pt-4">
+            <SettingsButton onNavigate={onClose} />
+          </div>
         </div>
       </aside>
 
@@ -105,7 +129,12 @@ const Sidebar = ({ isOpen, onClose }) => {
             <p className="text-lg font-semibold text-gray-900">TaskManager</p>
           </div>
         </div>
-        <SidebarNav />
+        <div className="flex-1 flex flex-col">
+          <SidebarNav />
+          <div className="mt-auto pt-6 border-t border-gray-100">
+            <SettingsButton />
+          </div>
+        </div>
       </aside>
     </>
   );
