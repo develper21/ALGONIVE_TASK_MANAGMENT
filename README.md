@@ -1,351 +1,201 @@
-# Algonive – Team Management
+<div align="center">
 
-A full‑stack team and task management application featuring role‑based access (Admin, Member), JWT authentication, dashboards, task analytics, Excel exports, and a clean React UI.
+# ALGONIVE · TEAM & TASK MANAGEMENT
 
-**Backend:** Node.js, Express, MongoDB (Mongoose), JWT, Multer, ExcelJS  
-**Frontend:** React (Vite), React Router, Axios, Tailwind CSS, custom toast notifications  
+Modern task orchestration for hybrid teams with dashboards, Kanban flows, realtime notifications, encrypted messaging, and automated reminders.
 
----
+### ⚙️ Core Stack
+<p align="center">
+  <img src="https://img.shields.io/badge/React-149ECA?style=for-the-badge&logo=react&logoColor=white" alt="React"/>
+  <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite"/>
+  <img src="https://img.shields.io/badge/Tailwind%20CSS-0EA5E9?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS"/>
+  <img src="https://img.shields.io/badge/React%20Router-CA4245?style=for-the-badge&logo=reactrouter&logoColor=white" alt="React Router"/>
+  <img src="https://img.shields.io/badge/Axios-5A29E4?style=for-the-badge&logo=axios&logoColor=white" alt="Axios"/>
+  <img src="https://img.shields.io/badge/Context%20API-9333EA?style=for-the-badge&logo=react&logoColor=white" alt="Context API"/>
+  <img src="https://img.shields.io/badge/Socket.IO-010101?style=for-the-badge&logo=socketdotio&logoColor=white" alt="Socket.IO"/>
+  <img src="https://img.shields.io/badge/Node.js-5FA04E?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js"/>
+  <img src="https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express"/>
+  <img src="https://img.shields.io/badge/MongoDB%20Atlas-13AA52?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB Atlas"/>
+  <img src="https://img.shields.io/badge/Mongoose-880000?style=for-the-badge&logo=mongoose&logoColor=white" alt="Mongoose"/>
+  <img src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white" alt="JWT"/>
+  <img src="https://img.shields.io/badge/Multer-FFB400?style=for-the-badge&logo=files&logoColor=black" alt="Multer"/>
+  <img src="https://img.shields.io/badge/Nodemailer-2088FF?style=for-the-badge&logo=gmail&logoColor=white" alt="Nodemailer"/>
+  <img src="https://img.shields.io/badge/Node--cron-FF6A3D?style=for-the-badge&logo=clockify&logoColor=white" alt="Node-cron"/>
+  <img src="https://img.shields.io/badge/ExcelJS-217346?style=for-the-badge&logo=microsoft-excel&logoColor=white" alt="ExcelJS"/>
+  <img src="https://img.shields.io/badge/dotenv-6366F1?style=for-the-badge&logo=.env&logoColor=white" alt="dotenv"/>
+</p>
 
-## Contents
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Monorepo Structure](#monorepo-structure)
-- [Environment Variables](#environment-variables)
-- [Quick Start](#quick-start)
-- [Scripts](#scripts)
-- [API Reference](#api-reference)
-- [Frontend Overview](#frontend-overview)
-- [File Uploads](#file-uploads)
-- [Reports & Exports](#reports--exports)
-- [Deployment](#deployment)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
+[
+  <img src="./Frontend/assets/algonive_dashboard.png" alt="dashboard preview" width="100%" />
+](https://algonive-task-managment.vercel.app/)
 
----
-
-## Overview
-
-Algonive is a MERN‑stack project that enables:
-
-- **Admins** to create, assign, and manage tasks, generate reports, and view global analytics.  
-- **Members** to view assigned tasks, update progress via checklists, and track their status.  
-
-Security is enforced via JWTs and role guards. The UI is responsive and includes top‑right in‑app notifications for user actions (login, signup, errors, etc.).
+</div>
 
 ---
 
-## Features
+## 🔗 Live Services
 
-### Authentication
-- Register, Login, Get/Update Profile  
-- JWT auth with token stored client‑side  
-- Role‑based access: admin vs member  
-
-### Task Management
-- CRUD tasks (admin creates/deletes)  
-- Assign to multiple members  
-- Todo checklist with auto progress and status (Pending/In Progress/Completed)  
-
-### Dashboards
-- **Admin overview:** counts, distribution by status/priority, recent tasks  
-- **User overview:** personal counts, status/priority distributions, recent tasks  
-
-### Reporting
-- Export all tasks (Excel)  
-- Export user-task summary (Excel)  
-
-### File Uploads
-- Profile image upload (Multer → `/uploads`)  
-
-### UI/UX
-- React Router based routes for Admin and User  
-- Top‑right toast notifications for important actions  
-- Tailwind utility classes  
+- **Frontend UI:** https://algonive-task-managment.vercel.app/
+- **Backend API root:** https://algonive-backend-q35u.onrender.com/api
 
 ---
 
-## Tech Stack
+## 🧠 Project Snapshot
 
-**Backend:** Node.js, Express, Mongoose, JWT, Multer, ExcelJS, CORS, dotenv  
-**Frontend:** React (Vite), React Router, Axios, Tailwind CSS  
-**DB:** MongoDB  
+Algonive is a production-ready MERN platform where admins orchestrate teams, automate notifications, and export reports while members collaborate via dashboards, Kanban boards, secure chat, and email reminders.
 
 ---
 
-## Monorepo Structure
+## 🛠 Backend Superpowers (Node.js + Express)
+
+### 🔐 Security & Identity
+- JWT-authenticated REST API with refresh-safe 7-day tokens.
+- Role-based guards (`admin`, `member`) and granular middleware.
+- Password hashing (bcrypt) + invite-token gate for admin onboarding.
+
+### 📋 Tasks, Teams & Assets
+- Full CRUD for tasks, teams, and assignments with audit activity logs.
+- Kanban-ready statuses, rich metadata (priority, tags, due dates, attachments).
+- Multer-powered file uploads with type detection & per-task storage isolation.
+
+### 📣 Messaging & Notifications
+- Encrypted conversation service enforcing end-to-end key handling.
+- Socket-ready notification model (deadline, assignment, status, team-invite, overdue).
+- Email templates (assignment, reminders, status change) delivered via Nodemailer.
+
+### 🤖 Automation & Reporting
+- Node-cron jobs for upcoming/overdue reminders + duplicate suppression.
+- ExcelJS exports (all tasks, user-task rollups) for leadership reporting.
+- Presence and notification stores for realtime awareness.
+
+### ⚙️ DevOps & Config
+- CORS hardened via `CLIENT_URL`, environment-driven secrets, and health logging.
+- Modular services (auth, tasks, teams, messaging, notifications) for scaling.
+
+---
+
+## 🎨 Frontend Experience (React + Vite)
+
+### 📊 Dashboards & Visualization
+- Personalized admin & member dashboards with KPI cards, workload charts, and activity feed.
+- Kanban board view with responsive drag-ready columns.
+- Status, priority, team, and assignee filters plus instant keyword search.
+
+### 🧑‍💻 Productivity Toolkit
+- Rich task composer (multi-tag, due date, attachments, checklist workflow).
+- Team management UI with color branding, member badges, and quick actions.
+- Messaging center + notification panel (mark-one/mark-all) synced with backend events.
+
+### 💎 UX & Platform Details
+- Tailwind-powered design system, gradient cards, skeleton loaders, and toasts.
+- React Context for auth + notifications, Axios interceptor for tokens, guarded routes.
+- Mobile-first layouts (nav collapse, cards stack) with crisp typography.
+
+---
+
+## 🧱 System Architecture
 
 ```
-
 Algonive/
-├─ server/                     # Express API
-│  ├─ config/db.js             # Mongoose connection
-│  ├─ controllers/             # auth, task, user, report controllers
-│  ├─ middlewares/             # authMiddleware, uploadMiddleware
-│  ├─ models/                  # User, Task
-│  ├─ routes/                  # /auth, /users, /tasks, /reports
-│  ├─ uploads/                 # Uploaded images (static)
-│  ├─ server.js                # App entry (CORS, routes, static)
-│  ├─ .env.example
-│  └─ package.json
-│
-└─ ui/                         # React frontend (Vite)
-├─ src/
-│  ├─ pages/                # Auth, Admin, User
-│  ├─ components/           # Layouts + UI
-│  ├─ context/              # userContext, NotificationContext
-│  ├─ routes/               # PrivateRoute (guard placeholder)
-│  ├─ utils/                # axiosInstance, apiPaths, helpers
-│  ├─ App.jsx, main.jsx, index.css
-├─ index.html
-└─ package.json
-
+├─ server/
+│  ├─ models/            # User, Team, Task, Conversation, Message, Notification…
+│  ├─ routes/            # auth, tasks, teams, messaging, notifications, reports
+│  ├─ services/          # messagingService, emailService, presence store
+│  ├─ utils/             # auth middleware, attachment storage, cron jobs
+│  └─ server.js          # Express app, CORS, sockets, schedulers
+└─ Frontend/
+   ├─ src/
+   │  ├─ pages/          # Dashboards, TaskBoard, Messaging, Auth, Settings
+   │  ├─ components/     # Sidebar, analytics cards, forms, modals
+   │  ├─ context/        # Auth, Notification, Theme
+   │  ├─ utils/          # apiPaths, axios instance, crypto helpers
+   │  └─ assets/         # icons, favicon
+   └─ vite.config.js
 ```
 
 ---
 
-## Environment Variables
+## ⚙️ Environment Variables
 
 ### Backend (`server/.env`)
 ```
-
-PORT=5000 (or 8000)
+PORT=8000
 MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-ADMIN_INVITE_TOKEN=7-digit-code (for admin registration)
-EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD, EMAIL_FROM (reserved for future)
-CLOUDINARY_* (reserved for future)
-
-```
-A template is provided at `server/.env.example`.
-
-### Frontend
-`ui/src/utils/apiPaths.js` uses:  
+JWT_SECRET=super_secret_key
+ADMIN_INVITE_TOKEN=7digitcode
+CLIENT_URL=https://algonive-task-managment.vercel.app
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_USER=hello@example.com
+EMAIL_PASSWORD=app-password
 ```
 
-BASE_URL = "[http://localhost:8000](http://localhost:8000)" (default)
-
-````
-**IMPORTANT:** Ensure server PORT matches BASE_URL.  
-- **Option A:** Set server `PORT=8000` in server/.env  
-- **Option B:** Change `BASE_URL` to `http://localhost:5000`  
+### Frontend (`Frontend/.env`)
+```
+VITE_API_URL=https://algonive-backend-q35u.onrender.com/api
+```
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
-### Clone
 ```bash
-git clone
+git clone <repo>
 cd Algonive
-````
 
-### Backend setup
-
-```bash
+# Backend
 cd server
+cp .env.example .env   # fill values above
+npm install
+npm run dev            # http://localhost:8000
+
+# Frontend
+cd ../Frontend
 cp .env.example .env
-# Fill MONGO_URI, JWT_SECRET, ADMIN_INVITE_TOKEN, and set PORT to match frontend BASE_URL (e.g., 8000)
 npm install
-npm run dev   # nodemon
-npm start     # production
+npm run dev            # http://localhost:5173
 ```
 
-### Frontend setup
-
-```bash
-cd ../ui
-npm install
-npm run dev
-# Open http://localhost:5173
-```
-
-**First admin:**
-Register with the `ADMIN_INVITE_TOKEN` to get role=admin
+First admin registers with `ADMIN_INVITE_TOKEN`; other members join teams via invites.
 
 ---
 
-## Scripts
+## 📡 API & Routes at a Glance
 
-### Backend (`server/package.json`)
+### Highlighted REST Endpoints
+- `POST /api/auth/register` · create user / admin with invite.
+- `POST /api/auth/login`, `GET/PUT /api/auth/profile`, `POST /api/auth/upload-image`.
+- `GET/POST /api/tasks` + filters (`status`, `team`, `assignee`, `priority`, `search`).
+- `PUT /api/tasks/:id`, `/status`, `/todo`, `/attachments`, `/activity/feed`.
+- `GET /api/reports/export/tasks`, `/users` (Excel streams).
+- `GET /api/notifications`, `PUT /:id/read`, `PUT /read-all`.
+- Conversation & messaging routes secured via `messagingService` (E2EE retention policies).
 
-* `npm run dev` → nodemon server.js
-* `npm start` → node server.js
-
-### Frontend (`ui/package.json`)
-
-* `npm run dev` → start Vite dev server
-* `npm run build` → build production
-* `npm run preview` → preview production build
-* `npm run lint` → run ESLint
-
----
-
-## API Reference (Backend)
-
-**Base URL:** `http://localhost:<PORT>`
-
-### Auth
-
-* `POST /api/auth/register`
-  body: `{ name, email, password, profileImageUrl?, adminInviteToken? }`
-  returns: user fields + token (7d expiry)
-
-* `POST /api/auth/login`
-  body: `{ email, password }`
-  returns: user fields + token
-
-* `GET /api/auth/profile`
-  headers: Authorization: Bearer
-  returns: current user (no password)
-
-* `PUT /api/auth/profile`
-  headers: Authorization: Bearer
-  body: `{ name?, email?, password? }`
-  returns: updated user + fresh token
-
-* `POST /api/auth/upload-image`
-  formData: image (file)
-  returns: `{ imageUrl }`
-
-**Static serving:** `GET /uploads/`
-
-### Users
-
-* `GET /api/users` → admin only, all members with task counts
-* `GET /api/users/:id` → auth required, single user (no password)
-
-### Tasks
-
-* `GET /api/tasks?status=Pending|In%20Progress|Completed` → auth required
-
-  * admin: all tasks
-  * member: assigned tasks
-
-* `GET /api/tasks/:id` → auth required
-
-* `POST /api/tasks` → admin only, body: `{ title, description?, priority, dueDate, assignedTo: [userId], attachments?: [url], todoChecklist?: [{text,completed}] }`
-
-* `PUT /api/tasks/:id` → auth required, updates fields; validates assignedTo is array when present
-
-* `DELETE /api/tasks/:id` → admin only
-
-* `PUT /api/tasks/:id/status` → auth required, body: `{ status }`, only assigned members or admin can change, auto updates checklist when Completed
-
-* `PUT /api/tasks/:id/todo` → auth required, body: `{ todoChecklist: [{text,completed}] }`, auto calculates progress and status
-
-### Dashboards
-
-* `GET /api/tasks/dashboard-data` → auth required (admin overview)
-* `GET /api/tasks/user-dashboard-data` → auth required (current user only)
-
-### Reports (Excel)
-
-* `GET /api/reports/export/tasks` → admin only, returns Excel
-* `GET /api/reports/export/users` → admin only, returns Excel
-
-### Auth & Middleware
-
-* JWT in Authorization header: Bearer
-* `protect`: verifies token, loads `req.user`
-* `adminOnly`: `req.user.role === "admin"`
+### Frontend Route Map
+- Public: `/login`, `/signup`.
+- Admin: `/admin/dashboard`, `/admin/tasks`, `/admin/create-task`, `/admin/users`, `/admin/reports`.
+- Member: `/user/dashboard`, `/user/tasks`, `/user/task-details/:id`, `/teams`, `/messaging`.
 
 ---
 
-## Frontend Overview
+## 🧪 Quality & Tooling
 
-**Entry:** `ui/src/main.jsx` wraps in NotificationProvider
-`ui/src/App.jsx` contains React Router routes for Auth, Admin, User
-
-### Routing
-
-**Public:**
-
-* `/login` → Login.jsx
-* `/signup` → SignUp.jsx
-
-**Admin:**
-
-* `/admin/dashboard` → Dashboard.jsx
-* `/admin/tasks` → ManageTasks.jsx
-* `/admin/create-task` → CreateTask.jsx
-* `/admin/users` → ManageUsers.jsx
-
-**User:**
-
-* `/user/dashboard` → UserDashboard.jsx
-* `/user/tasks` → MyTasks.jsx
-* `/user/task-details/:id` → ViewTaskDetails.jsx
-
-**Auth flow:**
-
-* On login/signup, token is saved to localStorage
-* axiosInstance adds Authorization header automatically
-* 401 responses redirect to `/login`
-
-### Notifications
-
-Custom NotificationContext with top‑right toasts
-
-```js
-const { addNotification } = useNotification();
-addNotification({ message: "Action completed", type: "success" });
-```
-
-### API client
-
-* `BASE_URL` in `ui/src/utils/apiPaths.js` (default [http://localhost:8000](http://localhost:8000))
-* axios interceptors attach token and handle 401/500
+- Vite + React Fast Refresh for DX.
+- ESLint (`npm run lint`) keeps code style consistent.
+- Nodemon auto-restarts backend during development.
+- Indexed Mongo queries + selective population for performance.
 
 ---
 
-## File Uploads
+## 📚 Documentation Hub
 
-**Endpoint:** `POST /api/auth/upload-image`
-**Client:** `ui/src/utils/uploadImage.js`
-
-* Sends FormData with image under key `"image"`
-* Server: Multer saves into `server/uploads`
-* Served statically at `GET /uploads/`
-* Response: `{ "imageUrl": "http://localhost:/uploads/" }`
+- [`Docs/SETUP_GUIDE.md`](./Docs/SETUP_GUIDE.md) – step-by-step environment setup.
+- [`Docs/PROJECT_SUMMARY.md`](./Docs/PROJECT_SUMMARY.md) – delivery checklist & metrics.
+- [`Docs/FEATURES_LIST.md`](./Docs/FEATURES_LIST.md) – exhaustive capability matrix.
+- [`Docs/EMAIL_TESTING_GUIDE.md`](./Docs/EMAIL_TESTING_GUIDE.md) – SMTP testing tips.
 
 ---
 
-## Reports & Exports
+## 🙌 Credits
 
-* ExcelJS used to generate:
-
-  * Tasks Report: `/api/reports/export/tasks`
-  * User Tasks Report: `/api/reports/export/users`
-* Response has Excel MIME type; browser triggers file download
-
----
-
-## Deployment
-
-### Backend
-
-* Set environment variables on your host (`MONGO_URI`, `JWT_SECRET`, `PORT`, etc.)
-* Serve `/uploads` statically (already handled in server.js)
-* Ensure CORS origin is your frontend URL
-* `server.js` uses `origin: process.env.CLIENT_URL || "*"`
-
-### Frontend
-
-* Set `BASE_URL` in `ui/src/utils/apiPaths.js` to your deployed backend URL
-* Build: `npm run build`
-* Serve via your hosting provider (static hosting supports Vite build)
-
----
-
-## Troubleshooting
-
-* **401 Unauthorized:** Missing/expired token → login; ensure axios attaches Authorization
-* **403 Access Denied:** Non‑admin calling admin routes
-* **500 Server Error:** Check server logs; verify `MONGO_URI` and `JWT_SECRET`
-* **CORS errors:** Set `CLIENT_URL` in server env to your frontend URL
-* **Port mismatch:** If server runs on 5000 and UI BASE_URL is 8000, update one of them
-* **Image upload fails:** Ensure form field name is `"image"`, verify `/uploads` is writable; check server logs
-
----
+Crafted by Algonive with a focus on polished UX, secure collaboration, and automation-first ops. Deploy-ready for Render (API) + Vercel (UI) with MongoDB Atlas at the core.
