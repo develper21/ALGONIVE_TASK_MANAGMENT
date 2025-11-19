@@ -171,6 +171,7 @@ router.post('/:id/add-member', authMiddleware, async (req, res) => {
     // Create notification
     const notification = new Notification({
       user: userToAdd._id,
+      actor: req.user._id,
       type: 'team_invite',
       message: `You have been added to team "${team.name}" by ${req.user.name}`,
       link: `/teams/${team._id}`
