@@ -6,6 +6,11 @@ const notificationSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  actor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   task: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Task'
