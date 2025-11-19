@@ -10,6 +10,9 @@ import TaskForm from './pages/TaskForm';
 import TeamPage from './pages/TeamPage';
 import Notifications from './pages/Notifications';
 import Messaging from './pages/Messaging';
+import Profile from './pages/Profile';
+import TaskWorkspace from './pages/TaskWorkspace';
+import Settings from './pages/Settings';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -96,6 +99,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/tasks/:id/workspace"
+        element={
+          <ProtectedRoute>
+            <TaskWorkspace />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/teams"
         element={
           <ProtectedRoute>
@@ -116,6 +127,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Messaging />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
           </ProtectedRoute>
         }
       />
