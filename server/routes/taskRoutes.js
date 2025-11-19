@@ -69,6 +69,7 @@ router.post('/', authMiddleware, async (req, res) => {
     if (assignee && assignee !== req.user._id.toString()) {
       const notification = new Notification({
         user: assignee,
+        actor: req.user._id,
         task: task._id,
         type: 'assignment',
         message: `${req.user.name} assigned you a task: "${title}"`,
@@ -252,6 +253,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (status && status !== oldStatus && task.assignee) {
       const notification = new Notification({
         user: task.assignee._id,
+        actor: req.user._id,
         task: task._id,
         type: 'status_change',
         message: `Task "${task.title}" status changed from ${oldStatus} to ${status}`,
