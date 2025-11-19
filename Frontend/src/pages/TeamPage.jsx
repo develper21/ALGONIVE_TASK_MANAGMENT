@@ -192,7 +192,7 @@ const TeamPage = () => {
                         <TaskCard
                           key={task._id}
                           task={task}
-                          onClick={() => navigate(`/tasks/${task._id}`)}
+                          onClick={() => navigate(`/tasks/${task._id}/workspace`)}
                         />
                       ))}
                       {teamTasks.length > 5 && (
