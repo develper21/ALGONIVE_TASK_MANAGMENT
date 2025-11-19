@@ -3,8 +3,10 @@ import Task from '../models/Task.js';
 import Team from '../models/Team.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
+import TaskActivity from '../models/TaskActivity.js';
 import { authMiddleware } from '../utils/authMiddleware.js';
 import { sendEmail, emailTemplates } from '../utils/emailService.js';
+import { recordTaskActivity } from '../utils/activityPublisher.js';
 
 const router = express.Router();
 
@@ -60,6 +62,18 @@ router.post('/', authMiddleware, async (req, res) => {
 
     await task.save();
 
+    await recordTaskActivity({
+      taskId: task._id,
+      teamId: team,
+      actorId: req.user._id,
+      action: 'task_created',
+      metadata: {
+        status: task.status,
+        priority: task.priority,
+        assignee: assignee || null
+      }
+    });
+
     const populatedTask = await Task.findById(task._id)
       .populate('createdBy', 'name email')
       .populate('assignee', 'name email')
@@ -98,6 +112,35 @@ router.post('/', authMiddleware, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Server error creating task' 
+    });
+  }
+});
+
+// @route   GET /api/tasks/activity/feed
+// @desc    Get recent task activity for user's teams
+// @access  Private
+router.get('/activity/feed', authMiddleware, async (req, res) => {
+  try {
+    const { limit = 25 } = req.query;
+    const user = await User.findById(req.user._id).populate('teams');
+    const userTeamIds = user.teams.map(t => t._id);
+
+    const activities = await TaskActivity.find({ team: { $in: userTeamIds } })
+      .sort({ createdAt: -1 })
+      .limit(Math.min(parseInt(limit, 10) || 25, 100))
+      .populate('task', 'title status priority assignee')
+      .populate('team', 'name color')
+      .populate('actor', 'name email role avatar');
+
+    res.json({
+      success: true,
+      activities
+    });
+  } catch (error) {
+    console.error('Get activity feed error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching activity feed'
     });
   }
 });
@@ -232,6 +275,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const { title, description, assignee, status, priority, dueDate, tags } = req.body;
 
     const oldStatus = task.status;
+    const oldAssignee = task.assignee ? task.assignee._id?.toString() || task.assignee.toString() : null;
+    const oldPriority = task.priority;
 
     // Update fields
     if (title) task.title = title;
@@ -352,12 +397,46 @@ router.get('/stats/dashboard', authMiddleware, async (req, res) => {
       status: { $ne: 'completed' }
     });
 
+    const historyStart = new Date();
+    historyStart.setDate(historyStart.getDate() - 6);
+
+    const statusHistoryRaw = await TaskActivity.aggregate([
+      {
+        $match: {
+          team: { $in: userTeamIds },
+          action: 'status_changed',
+          createdAt: { $gte: historyStart }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            day: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.day': 1 } }
+    ]);
+
+    const statusHistory = Array.from({ length: 7 }).map((_, index) => {
+      const date = new Date(historyStart.getTime());
+      date.setDate(historyStart.getDate() + index);
+      const key = date.toISOString().slice(0, 10);
+      const entry = statusHistoryRaw.find(item => item._id.day === key);
+      return {
+        date: key,
+        count: entry ? entry.count : 0
+      };
+    });
+
     res.json({
       success: true,
       stats: {
         byStatus: taskStats,
         myTasks,
-        overdueTasks
+        overdueTasks,
+        statusHistory
       }
     });
   } catch (error) {

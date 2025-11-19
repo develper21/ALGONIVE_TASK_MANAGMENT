@@ -162,6 +162,13 @@ io.on('connection', (socket) => {
   socket.emit('messaging:ready');
   broadcastPresence();
 
+  // Join team rooms for dashboard activity streaming
+  if (Array.isArray(user.teams)) {
+    user.teams.forEach((teamId) => {
+      socket.join(`team:${teamId}`);
+    });
+  }
+
   socket.on('messaging:join', async ({ conversationId }) => {
     if (!conversationId) {
       return socket.emit('messaging:error', { message: 'conversationId is required' });
