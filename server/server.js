@@ -23,9 +23,19 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+const parseOrigins = (value = '') => value
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const allowedOrigins = [
-  process.env.CLIENT_URL,
-].filter(Boolean);
+  ...parseOrigins(process.env.CLIENT_URL)
+];
+
+// During local development allow the default Vite origin if nothing else is set
+if (!allowedOrigins.length && process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:5173');
+}
 
 const corsOptions = {
   origin: (origin, callback) => {
