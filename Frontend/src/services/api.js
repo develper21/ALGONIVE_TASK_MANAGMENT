@@ -72,4 +72,18 @@ export const notificationAPI = {
   delete: (id) => api.delete(`/notifications/${id}`),
 };
 
+export const messagingAPI = {
+  registerKey: (data) => api.post('/messaging/keys', data),
+  lookupKeys: (data) => api.post('/messaging/keys/lookup', data),
+  listConversations: () => api.get('/messaging/conversations'),
+  createDirectConversation: (data) => api.post('/messaging/conversations/direct', data),
+  createTeamConversation: (data) => api.post('/messaging/conversations/team', data),
+  updateRetention: (conversationId, data) => api.patch(`/messaging/conversations/${conversationId}/retention`, data),
+  getParticipants: (conversationId) => api.get(`/messaging/conversations/${conversationId}/participants`),
+  getMessages: (conversationId, params) => api.get(`/messaging/messages/${conversationId}`, { params }),
+  sendMessage: (data) => api.post('/messaging/messages', data),
+  exportConversation: (conversationId) => api.get(`/messaging/export/${conversationId}`, { responseType: 'blob' }),
+  searchMessages: (params) => api.get('/messaging/search', { params })
+};
+
 export default api;
