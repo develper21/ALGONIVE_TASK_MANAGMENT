@@ -124,24 +124,65 @@ export const MessagingProvider = ({ children }) => {
     }
 
     const token = localStorage.getItem('token');
+    console.log('Connecting to socket with URL:', socketBaseUrl);
+    console.log('Token present:', !!token);
+    
+    // Try connection without authentication first to bypass the namespace error
     const socket = io(socketBaseUrl, {
-      auth: { token },
       transports: ['websocket', 'polling'],
       timeout: 20000,
       reconnectionAttempts: 5,
-      reconnectionDelay: 1000
+      reconnectionDelay: 1000,
+      forceNew: true
     });
 
     socket.on('connect_error', (error) => {
       console.error('Socket connect error', error);
+      console.error('Error details:', {
+        message: error.message,
+        description: error.description,
+        type: error.type,
+        context: error.context
+      });
+      
       if (error.message === 'Invalid namespace') {
-        toast.error('Socket connection failed - please refresh the page');
+        console.log('Namespace error - trying with authentication...');
+        // Try with authentication as fallback
+        setTimeout(() => {
+          const authSocket = io(socketBaseUrl, {
+            auth: { token },
+            transports: ['websocket', 'polling'],
+            timeout: 10000,
+            forceNew: true
+          });
+          
+          authSocket.on('connect', () => {
+            console.log('Connected with authentication:', authSocket.id);
+            socketRef.current = authSocket;
+          });
+          
+          authSocket.on('connect_error', (err) => {
+            console.error('Auth connection also failed:', err);
+            toast.error('Socket connection failed - please refresh the page');
+          });
+        }, 2000);
       } else {
         toast.error('Messaging realtime connection failed');
       }
     });
 
+    socket.on('connect', () => {
+      console.log('Socket connected successfully:', socket.id);
+      console.log('Transport:', socket.io.engine.transport.name);
+      
+      // Try to authenticate after connection
+      if (token) {
+        socket.emit('authenticate', { token });
+      }
+    });
+
     socket.on(SOCKET_EVENTS.READY, () => {
+      console.log('Socket ready for messaging');
       // Rejoin active conversation if needed
       if (activeConversationId) {
         socket.emit(SOCKET_EVENTS.JOIN, { conversationId: activeConversationId });
