@@ -80,7 +80,11 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     success: true, 
     message: 'Task Manager API is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    socketio: {
+      connected: io.engine.clientsCount,
+      sockets: io.sockets.sockets.size
+    }
   });
 });
 
@@ -122,8 +126,12 @@ const httpServer = http.createServer(app);
 const io = new SocketIOServer(httpServer, {
   cors: {
     origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
-    credentials: true
-  }
+    credentials: true,
+    methods: ['GET', 'POST']
+  },
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 const broadcastPresence = () => {
@@ -136,7 +144,10 @@ io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token
       || socket.handshake.headers?.authorization?.replace('Bearer ', '');
 
+    console.log('Socket authentication attempt for socket:', socket.id);
+
     if (!token) {
+      console.log('Socket auth failed: No token provided');
       return next(new Error('Authentication token required'));
     }
 
@@ -144,12 +155,15 @@ io.use(async (socket, next) => {
     const user = await User.findById(decoded.userId).select('-passwordHash');
 
     if (!user) {
+      console.log('Socket auth failed: User not found for ID:', decoded.userId);
       return next(new Error('User not found'));
     }
 
+    console.log('Socket auth successful for user:', user.email);
     socket.data.user = user;
     next();
   } catch (error) {
+    console.error('Socket authentication error:', error.message);
     next(new Error('Authentication failed'));
   }
 });
@@ -157,6 +171,9 @@ io.use(async (socket, next) => {
 io.on('connection', (socket) => {
   const user = socket.data.user;
   const userRoom = `user:${user._id}`;
+  
+  console.log(`Socket connected: ${socket.id} for user: ${user.email}`);
+  
   socket.join(userRoom);
   setUserOnline(user._id, socket.id);
   socket.emit('messaging:ready');
@@ -195,6 +212,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    console.log(`Socket disconnected: ${socket.id} for user: ${user.email}`);
     const remaining = setUserOffline(user._id, socket.id);
     if (remaining === 0) {
       broadcastPresence();
