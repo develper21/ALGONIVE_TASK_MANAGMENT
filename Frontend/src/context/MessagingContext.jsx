@@ -126,12 +126,19 @@ export const MessagingProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     const socket = io(socketBaseUrl, {
       auth: { token },
-      transports: ['websocket']
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
     });
 
     socket.on('connect_error', (error) => {
       console.error('Socket connect error', error);
-      toast.error('Messaging realtime connection failed');
+      if (error.message === 'Invalid namespace') {
+        toast.error('Socket connection failed - please refresh the page');
+      } else {
+        toast.error('Messaging realtime connection failed');
+      }
     });
 
     socket.on(SOCKET_EVENTS.READY, () => {
