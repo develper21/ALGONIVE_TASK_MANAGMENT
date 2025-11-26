@@ -8,6 +8,7 @@ import {
   Settings,
   X
 } from 'lucide-react';
+import favicon from '../assets/Favicon.png';
 
 const navItems = [
   {
@@ -99,6 +100,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center space-x-2">
             <div className="w-9 h-9 bg-gradient-to-br from-gray-50 to-gray-50 rounded-xl flex items-center justify-center">
+              <img src={favicon} alt="Logo" className="w-7 h-7" />
             </div>
             <span className="text-lg font-bold text-gray-900">TaskManager</span>
           </div>
@@ -122,7 +124,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       <aside className="hidden lg:flex lg:flex-col w-64 bg-white border-r border-gray-200 min-h-screen px-4 py-6">
         <div className="flex items-center space-x-3 mb-8">
           <div className="w-10 h-10 bg-gradient-to-br from-black to-gray-100 rounded-md flex items-center justify-center">
-            <img src="../assets/Favicon.png" alt="Logo" className="w-8 h-8" />
+            <img src={favicon} alt="Logo" className="w-8 h-8" />
           </div>
           <div>
             <p className="text-sm text-gray-500">Algonive</p>
