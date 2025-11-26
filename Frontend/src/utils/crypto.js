@@ -84,7 +84,7 @@ const ensureKeyMaterial = async () => {
 };
 
 export const getSocketBaseUrl = () => {
-  const baseUrl = API_URL.replace(/\/api$/, '');
+  const baseUrl = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL;
   console.log('Socket base URL:', baseUrl);
   return baseUrl;
 };

@@ -124,11 +124,16 @@ export const MessagingProvider = ({ children }) => {
     }
 
     const token = localStorage.getItem('token');
-    console.log('Connecting to socket with URL:', socketBaseUrl);
+    const baseUrl = getSocketBaseUrl();
+    console.log('Connecting to socket with URL:', baseUrl);
     console.log('Token present:', !!token);
     
+    // Ensure we have the correct socket URL (without /api)
+    const socketUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl;
+    console.log('Final socket URL:', socketUrl);
+    
     // Try connection without authentication first to bypass the namespace error
-    const socket = io(socketBaseUrl, {
+    const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
       reconnectionAttempts: 5,
@@ -149,7 +154,7 @@ export const MessagingProvider = ({ children }) => {
         console.log('Namespace error - trying with authentication...');
         // Try with authentication as fallback
         setTimeout(() => {
-          const authSocket = io(socketBaseUrl, {
+          const authSocket = io(socketUrl, {
             auth: { token },
             transports: ['websocket', 'polling'],
             timeout: 10000,
