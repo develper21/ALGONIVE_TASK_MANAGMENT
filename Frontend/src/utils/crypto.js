@@ -83,7 +83,11 @@ const ensureKeyMaterial = async () => {
   return { privateKey, publicKey };
 };
 
-export const getSocketBaseUrl = () => API_URL.replace(/\/api$/, '');
+export const getSocketBaseUrl = () => {
+  const baseUrl = API_URL.replace(/\/api$/, '');
+  console.log('Socket base URL:', baseUrl);
+  return baseUrl;
+};
 
 export const loadOrCreateKeyPair = async () => {
   const existingPrivate = await get(PRIVATE_KEY_STORAGE_KEY);
