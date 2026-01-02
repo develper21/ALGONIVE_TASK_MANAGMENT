@@ -128,11 +128,9 @@ export const MessagingProvider = ({ children }) => {
     console.log('Connecting to socket with URL:', baseUrl);
     console.log('Token present:', !!token);
     
-    // Ensure we have the correct socket URL (without /api)
     const socketUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl;
     console.log('Final socket URL:', socketUrl);
     
-    // Try connection without authentication first to bypass the namespace error
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
@@ -152,7 +150,6 @@ export const MessagingProvider = ({ children }) => {
       
       if (error.message === 'Invalid namespace') {
         console.log('Namespace error - trying with authentication...');
-        // Try with authentication as fallback
         setTimeout(() => {
           const authSocket = io(socketUrl, {
             auth: { token },
@@ -180,7 +177,6 @@ export const MessagingProvider = ({ children }) => {
       console.log('Socket connected successfully:', socket.id);
       console.log('Transport:', socket.io.engine.transport.name);
       
-      // Try to authenticate after connection
       if (token) {
         socket.emit('authenticate', { token });
       }
@@ -188,7 +184,6 @@ export const MessagingProvider = ({ children }) => {
 
     socket.on(SOCKET_EVENTS.READY, () => {
       console.log('Socket ready for messaging');
-      // Rejoin active conversation if needed
       if (activeConversationId) {
         socket.emit(SOCKET_EVENTS.JOIN, { conversationId: activeConversationId });
       }
