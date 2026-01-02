@@ -129,9 +129,7 @@ const Messaging = () => {
     try {
       await sendEncryptedMessage(activeConversationId, messageInput.trim());
       setMessageInput('');
-    } catch (error) {
-      // handled upstream
-    }
+    } catch (error) {}
   };
 
   const handleCreateDirectConversation = async () => {
@@ -224,8 +222,7 @@ const Messaging = () => {
         onClick={() => handleSelectConversation(conversation.id)}
         className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${
           isActive ? 'border-primary-200 bg-primary-50/60 shadow-sm' : 'border-gray-100 hover:border-primary-100'
-        }`}
-      >
+        }`}>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-gray-800">
@@ -302,8 +299,7 @@ const Messaging = () => {
                     <select
                       value={selectedMemberId}
                       onChange={(event) => setSelectedMemberId(event.target.value)}
-                      className="input"
-                    >
+                      className="input">
                       <option value="">Select teammate</option>
                       {memberOptions.map((member) => (
                         <option key={member._id} value={member._id}>
@@ -314,8 +310,7 @@ const Messaging = () => {
                     <button
                       onClick={handleCreateDirectConversation}
                       className="btn btn-primary w-full"
-                      disabled={creatingDirect}
-                    >
+                      disabled={creatingDirect}>
                       {creatingDirect ? 'Creating…' : 'Create direct chat'}
                     </button>
                   </div>
@@ -327,8 +322,7 @@ const Messaging = () => {
                     <select
                       value={selectedTeamId}
                       onChange={(event) => setSelectedTeamId(event.target.value)}
-                      className="input"
-                    >
+                      className="input">
                       <option value="">Select team</option>
                       {teamOptions.map((team) => (
                         <option key={team._id} value={team._id}>
@@ -339,8 +333,7 @@ const Messaging = () => {
                     <button
                       onClick={handleCreateTeamConversation}
                       className="btn btn-secondary w-full"
-                      disabled={creatingTeamChat}
-                    >
+                      disabled={creatingTeamChat}>
                       {creatingTeamChat ? 'Creating…' : 'Create team chat'}
                     </button>
                   </div>
@@ -366,15 +359,13 @@ const Messaging = () => {
                       <select
                         value={activeConversation.retentionPolicy}
                         onChange={handleRetentionChange}
-                        className="border border-gray-200 rounded-lg text-xs px-2 py-1"
-                      >
+                        className="border border-gray-200 rounded-lg text-xs px-2 py-1">
                         <option value="7d">7 day retention</option>
                         <option value="30d">30 day retention</option>
                       </select>
                       <button
                         onClick={handleExportConversation}
-                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-lg border border-gray-200 hover:bg-gray-50"
-                      >
+                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-lg border border-gray-200 hover:bg-gray-50">
                         <Download size={14} /> Export
                       </button>
                     </div>
@@ -386,8 +377,7 @@ const Messaging = () => {
                         key={participant.id}
                         className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border ${
                           participant.publicKey ? 'border-green-200 text-green-700' : 'border-amber-200 text-amber-700'
-                        }`}
-                      >
+                        }`}>
                         <KeyRound size={12} /> {participant.name || participant.email}
                         {!participant.publicKey && '• key missing'}
                       </span>
@@ -412,8 +402,7 @@ const Messaging = () => {
                         <div
                           className={`self-${isSelf ? 'end' : 'start'} max-w-[80%] px-4 py-3 rounded-2xl ${
                             isSelf ? 'bg-primary-600 text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'
-                          }`}
-                        >
+                          }`}>
                           <p className="text-sm font-semibold mb-1">
                             {isSelf ? 'You' : sender?.name || 'Member'}
                           </p>
