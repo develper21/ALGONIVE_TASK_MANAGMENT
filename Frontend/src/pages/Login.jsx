@@ -42,7 +42,6 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-6xl bg-white rounded-[32px] shadow-[0_40px_120px_rgba(15,23,42,0.15)] grid lg:grid-cols-2 overflow-hidden">
-        {/* Left Form Panel */}
         <div className="px-8 lg:px-16 py-12 flex flex-col justify-between">
           <div>
             <div className="flex items-center space-x-3 mb-10">
@@ -104,15 +103,14 @@ const Login = () => {
                     <input type="checkbox" className="rounded border-gray-300 text-gray-900 focus:ring-gray-900" />
                     <span>Remember me</span>
                   </label>
-                  <button type="button" className="text-gray-900 font-medium hover:underline">Forgot password?</button>
+                  <Link to="/forgot-password" className="text-gray-900 font-medium hover:underline">Forgot password?</Link>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-14 rounded-2xl bg-gradient-to-r from-gray-900 to-gray-800 text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-gray-900/20"
-              >
+                className="w-full h-14 rounded-2xl bg-gradient-to-r from-gray-900 to-gray-800 text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-gray-900/20">
                 {loading ? (
                   <>
                     <Loader2 className="animate-spin" size={18} />
@@ -149,7 +147,6 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Right Insight Panel */}
         <div className="bg-[#0f172a] text-white relative p-10 lg:p-14 flex flex-col gap-8">
           <div>
             <p className="text-sm text-white/60 mb-3">Live project insights</p>
