@@ -50,8 +50,7 @@ const SidebarNav = ({ onNavigate }) => (
               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           }`
         }
-        onClick={onNavigate}
-      >
+        onClick={onNavigate}>
         <Icon size={18} />
         <span>{label}</span>
       </NavLink>
@@ -69,8 +68,7 @@ const SettingsButton = ({ onNavigate }) => (
           ? 'bg-primary-50 text-primary-700 border-primary-100 shadow-sm'
           : 'text-gray-700 border-gray-200 hover:bg-gray-50'
       }`
-    }
-  >
+    }>
     <Settings size={18} />
     <div className="flex flex-col">
       <span>System Settings</span>
@@ -82,7 +80,6 @@ const SettingsButton = ({ onNavigate }) => (
 const Sidebar = ({ isOpen, onClose }) => {
   return (
     <>
-      {/* Mobile overlay */}
       <div
         className={`fixed inset-0 bg-black/40 z-40 transition-opacity lg:hidden ${
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -90,12 +87,10 @@ const Sidebar = ({ isOpen, onClose }) => {
         onClick={onClose}
       />
 
-      {/* Mobile drawer */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 shadow-lg transform transition-transform lg:hidden ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
+        }`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center space-x-2">
             <div className="w-9 h-9 bg-gradient-to-br from-gray-50 to-gray-50 rounded-xl flex items-center justify-center">
@@ -106,8 +101,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           <button
             onClick={onClose}
             className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
-            aria-label="Close sidebar"
-          >
+            aria-label="Close sidebar">
             <X size={18} />
           </button>
         </div>
@@ -119,7 +113,6 @@ const Sidebar = ({ isOpen, onClose }) => {
         </div>
       </aside>
 
-      {/* Desktop sidebar */}
       <aside className="hidden lg:flex lg:flex-col w-64 bg-white border-r border-gray-200 min-h-screen px-4 py-6">
         <div className="flex items-center space-x-3 mb-8">
           <div className="w-10 h-10 bg-gradient-to-br from-black to-gray-100 rounded-md flex items-center justify-center">
