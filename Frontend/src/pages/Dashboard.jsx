@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { taskAPI, teamAPI } from '../services/api';
+import notificationService from '../services/notificationService';
 import Layout from '../components/Layout';
 import TaskCard from '../components/TaskCard';
-import { Plus, CheckCircle, Clock, AlertCircle, ListTodo, Users, TrendingUp, Activity, Filter, Zap } from 'lucide-react';
+import { Plus, CheckCircle, Clock, AlertCircle, ListTodo, Users, TrendingUp, Activity, Filter, Zap, Bell, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from 'recharts';
 import { useMessaging } from '../context/MessagingContext';
@@ -43,7 +44,6 @@ const Dashboard = () => {
       setTasks(tasksRes.data.tasks);
       setTeams(teamsRes.data.teams);
       
-      // Process stats
       const statusStats = statsRes.data.stats.byStatus.reduce((acc, item) => {
         acc[item._id] = item.count;
         return acc;
@@ -74,14 +74,10 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const socket = socketRef?.current;
-    if (!socket) return;
+    const socket = socketRef.current;
 
     const handleActivity = (activity) => {
-      setActivityFeed((prev) => {
-        const next = [activity, ...prev];
-        return next.slice(0, 25);
-      });
+      setActivityFeed((prev) => [activity, ...prev]);
 
       if (activity.action === 'status_changed') {
         setStats((prev) => ({
@@ -120,7 +116,6 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
             Welcome back, {user?.name}! 👋
@@ -222,12 +217,20 @@ const Dashboard = () => {
                 <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Activity Feed</p>
                 <h3 className="text-xl font-bold text-gray-900">Team Movements</h3>
               </div>
-              <button
-                onClick={fetchData}
-                className="text-sm text-primary-600 inline-flex items-center gap-2"
-              >
-                <Zap size={16} /> Refresh
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchData}
+                  className="text-sm text-primary-600 inline-flex items-center gap-2"
+                >
+                  <RefreshCw size={16} /> Refresh
+                </button>
+                <button
+                  onClick={() => notificationService.clearAll()}
+                  className="text-sm text-primary-600 inline-flex items-center gap-2"
+                >
+                  <Bell size={16} /> Clear Notifications
+                </button>
+              </div>
             </div>
             <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
               {activityFeed.length === 0 ? (
