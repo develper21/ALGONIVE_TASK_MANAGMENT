@@ -8,6 +8,12 @@ import Notification from '../models/Notification.js';
 import TaskActivity from '../models/TaskActivity.js';
 import TaskAttachment from '../models/TaskAttachment.js';
 import { authMiddleware } from '../utils/authMiddleware.js';
+import { asyncHandler } from '../utils/errorHandler.js';
+import { validate, schemas, validateObjectId } from '../utils/validation.js';
+import { AuditLogger } from '../utils/auditLogger.js';
+import logger from '../utils/logger.js';
+import cache, { cacheKeys, cacheInvalidation } from '../utils/cache.js';
+import { queryOptimizer } from '../utils/databaseOptimizer.js';
 import { sendEmail, emailTemplates } from '../utils/emailService.js';
 import { recordTaskActivity } from '../utils/activityPublisher.js';
 import { ensureTaskUploadDir, getTaskRelativePath, detectFileType, resolveAttachmentPath } from '../utils/attachmentStorage.js';
@@ -60,8 +66,11 @@ const requireTaskAccess = async (taskId, user) => {
 // @route   POST /api/tasks/:id/attachments
 // @desc    Upload files for a task
 // @access  Private
-router.post('/:id/attachments', authMiddleware, attachmentUpload.array('files', 10), async (req, res) => {
-  try {
+router.post('/:id/attachments', 
+  authMiddleware,
+  validateObjectId('id'),
+  attachmentUpload.array('files', 10),
+  asyncHandler(async (req, res) => {
     const task = await requireTaskAccess(req.params.id, req.user);
 
     if (!req.files || req.files.length === 0) {
@@ -86,48 +95,58 @@ router.post('/:id/attachments', authMiddleware, attachmentUpload.array('files', 
       return attachment;
     }));
 
+    // Log attachment upload
+    await AuditLogger.logTaskAction(req.user._id, 'TASK_ATTACHMENT_ADD', task._id, req, {
+      attachmentCount: attachments.length,
+      totalSize: attachments.reduce((sum, att) => sum + att.size, 0)
+    });
+
+    // Invalidate task cache
+    await cacheInvalidation.invalidateTask(task);
+
     res.status(201).json({
       success: true,
       attachments
     });
-  } catch (error) {
-    console.error('Upload attachment error:', error);
-    res.status(error.status || 500).json({
-      success: false,
-      message: error.message || 'Failed to upload attachments'
-    });
-  }
-});
+  })
+);
 
 // @route   GET /api/tasks/:id/attachments
 // @desc    List attachments for a task
 // @access  Private
-router.get('/:id/attachments', authMiddleware, async (req, res) => {
-  try {
+router.get('/:id/attachments',
+  authMiddleware,
+  validateObjectId('id'),
+  asyncHandler(async (req, res) => {
     await requireTaskAccess(req.params.id, req.user);
 
-    const attachments = await TaskAttachment.find({ task: req.params.id })
-      .sort({ createdAt: -1 })
-      .populate('uploadedBy', 'name email');
+    // Try cache first
+    const cacheKey = `task:${req.params.id}:attachments`;
+    let attachments = await cache.get(cacheKey);
+
+    if (!attachments) {
+      attachments = await TaskAttachment.find({ task: req.params.id })
+        .sort({ createdAt: -1 })
+        .populate('uploadedBy', 'name email');
+      
+      // Cache for 30 minutes
+      await cache.set(cacheKey, attachments, 1800);
+    }
 
     res.json({
       success: true,
       attachments
     });
-  } catch (error) {
-    console.error('List attachments error:', error);
-    res.status(error.status || 500).json({
-      success: false,
-      message: error.message || 'Failed to fetch attachments'
-    });
-  }
-});
+  })
+);
 
 // @route   GET /api/tasks/attachments/:attachmentId/download
 // @desc    Download a specific attachment
 // @access  Private
-router.get('/attachments/:attachmentId/download', authMiddleware, async (req, res) => {
-  try {
+router.get('/attachments/:attachmentId/download',
+  authMiddleware,
+  validateObjectId('attachmentId'),
+  asyncHandler(async (req, res) => {
     const attachment = await TaskAttachment.findById(req.params.attachmentId);
     if (!attachment) {
       return res.status(404).json({ success: false, message: 'Attachment not found' });
@@ -140,33 +159,29 @@ router.get('/attachments/:attachmentId/download', authMiddleware, async (req, re
       return res.status(410).json({ success: false, message: 'Attachment file missing from storage' });
     }
 
+    // Log attachment download
+    await AuditLogger.logTaskAction(req.user._id, 'TASK_ATTACHMENT_DOWNLOAD', attachment.task, req, {
+      attachmentId: attachment._id,
+      fileName: attachment.originalName,
+      fileSize: attachment.size
+    });
+
     res.setHeader('Content-Type', attachment.mimeType || 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${attachment.originalName}"`);
 
     const readStream = fs.createReadStream(absolutePath);
     readStream.pipe(res);
-  } catch (error) {
-    console.error('Download attachment error:', error);
-    res.status(error.status || 500).json({
-      success: false,
-      message: error.message || 'Failed to download attachment'
-    });
-  }
-});
+  })
+);
 
 // @route   POST /api/tasks
 // @desc    Create a new task
 // @access  Private
-router.post('/', authMiddleware, async (req, res) => {
-  try {
-    const { title, description, assignee, team, status, priority, dueDate, tags } = req.body;
-
-    if (!title || !team) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Title and team are required' 
-      });
-    }
+router.post('/',
+  authMiddleware,
+  validate(schemas.createTask),
+  asyncHandler(async (req, res) => {
+    const { title, description, assignee, team, status, priority, dueDate, tags, checklist } = req.body;
 
     // Verify team exists and user is a member
     const teamDoc = await Team.findById(team);
@@ -177,7 +192,7 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
-    if (!teamDoc.members.includes(req.user._id)) {
+    if (!teamDoc.members.includes(req.user._id) && req.user.role !== 'admin') {
       return res.status(403).json({ 
         success: false, 
         message: 'You are not a member of this team' 
@@ -201,10 +216,23 @@ router.post('/', authMiddleware, async (req, res) => {
       status: status || 'pending',
       priority: priority || 'medium',
       dueDate: dueDate || null,
-      tags: tags || []
+      tags: tags || [],
+      checklist: checklist || []
     });
 
     await task.save();
+
+    // Log task creation
+    await AuditLogger.logTaskAction(req.user._id, 'TASK_CREATE', task._id, req, {
+      title,
+      team,
+      assignee,
+      priority,
+      status
+    });
+
+    // Invalidate team cache
+    await cacheInvalidation.invalidateTeam(team);
 
     await recordTaskActivity({
       taskId: task._id,
@@ -235,13 +263,21 @@ router.post('/', authMiddleware, async (req, res) => {
       });
       await notification.save();
 
-      // Send email notification
+      // Send email notification with enhanced template
       const assigneeUser = await User.findById(assignee);
       if (assigneeUser) {
         await sendEmail(
           assigneeUser.email,
           `New Task Assigned: ${title}`,
-          emailTemplates.taskAssignment(title, req.user.name, dueDate || new Date())
+          emailTemplates.taskAssignment({
+            taskTitle: title,
+            assignedBy: req.user.name,
+            dueDate: dueDate || new Date(),
+            priority: priority || 'medium',
+            description: description || '',
+            teamName: teamDoc.name,
+            taskLink: `${process.env.CLIENT_URL}/tasks/${task._id}`
+          })
         );
       }
     }
@@ -251,420 +287,391 @@ router.post('/', authMiddleware, async (req, res) => {
       message: 'Task created successfully',
       task: populatedTask
     });
-  } catch (error) {
-    console.error('Create task error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error creating task' 
-    });
-  }
-});
+  })
+);
 
 // @route   GET /api/tasks/activity/feed
 // @desc    Get recent task activity for user's teams
 // @access  Private
-router.get('/activity/feed', authMiddleware, async (req, res) => {
-  try {
+router.get('/activity/feed',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
     const { limit = 25 } = req.query;
-    const user = await User.findById(req.user._id).populate('teams');
-    const userTeamIds = user.teams.map(t => t._id);
+    
+    // Try cache first
+    const cacheKey = `user:${req.user._id}:activity_feed`;
+    let activities = await cache.get(cacheKey);
+    
+    if (!activities) {
+      const user = await User.findById(req.user._id).populate('teams');
+      const userTeamIds = user.teams.map(t => t._id);
 
-    const activities = await TaskActivity.find({ team: { $in: userTeamIds } })
-      .sort({ createdAt: -1 })
-      .limit(Math.min(parseInt(limit, 10) || 25, 100))
-      .populate('task', 'title status priority assignee')
-      .populate('team', 'name color')
-      .populate('actor', 'name email role avatar');
+      activities = await TaskActivity.find({ team: { $in: userTeamIds } })
+        .sort({ createdAt: -1 })
+        .limit(Math.min(parseInt(limit, 10) || 25, 100))
+        .populate('task', 'title status priority assignee')
+        .populate('team', 'name color')
+        .populate('actor', 'name email role avatar');
+      
+      // Cache for 5 minutes
+      await cache.set(cacheKey, activities, 300);
+    }
 
     res.json({
       success: true,
       activities
     });
-  } catch (error) {
-    console.error('Get activity feed error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error fetching activity feed'
-    });
-  }
-});
+  })
+);
 
 // @route   GET /api/tasks
 // @desc    Get tasks (with filters)
 // @access  Private
-router.get('/', authMiddleware, async (req, res) => {
-  try {
-    const { team, status, assignee, priority, search } = req.query;
+router.get('/',
+  authMiddleware,
+  validate(schemas.taskQuery, 'query'),
+  asyncHandler(async (req, res) => {
+    const { team, status, assignee, priority, search, page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
-    // Build query
-    let query = {};
+    // Use queryOptimizer for better performance
+    const optimizedQuery = queryOptimizer.getTasksByTeam(
+      team || null, 
+      { 
+        page: parseInt(page), 
+        limit: parseInt(limit), 
+        status, 
+        priority, 
+        assignee, 
+        search, 
+        sortBy, 
+        sortOrder 
+      }
+    );
 
-    // Get user's teams
-    const user = await User.findById(req.user._id).populate('teams');
-    const userTeamIds = user.teams.map(t => t._id);
-
-    // Filter by team
-    if (team) {
-      query.team = team;
+    // If no specific team, get user's teams and filter
+    if (!team) {
+      const user = await User.findById(req.user._id).populate('teams');
+      const userTeamIds = user.teams.map(t => t._id);
+      
+      // Update query to include user's teams
+      optimizedQuery.query.team = { $in: userTeamIds };
     } else {
-      // Show tasks from all user's teams
-      query.team = { $in: userTeamIds };
+      // Verify user has access to specified team
+      const teamDoc = await Team.findById(team);
+      if (!teamDoc || (!teamDoc.members.includes(req.user._id) && req.user.role !== 'admin')) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied to this team'
+        });
+      }
+      optimizedQuery.query.team = team;
     }
 
-    // Filter by status
-    if (status) {
-      query.status = status;
-    }
-
-    // Filter by assignee
-    if (assignee) {
-      query.assignee = assignee;
-    }
-
-    // Filter by priority
-    if (priority) {
-      query.priority = priority;
-    }
-
-    // Search in title and description
+    // Apply additional filters
+    if (status) optimizedQuery.query.status = status;
+    if (assignee) optimizedQuery.query.assignee = assignee;
+    if (priority) optimizedQuery.query.priority = priority;
     if (search) {
-      query.$or = [
+      optimizedQuery.query.$or = [
         { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { description: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } }
       ];
     }
 
-    const tasks = await Task.find(query)
-      .populate('createdBy', 'name email')
-      .populate('assignee', 'name email')
-      .populate('team', 'name color')
-      .sort({ createdAt: -1 });
+    // Try cache first
+    const cacheKey = cacheKeys.userTasks(req.user._id, req.query);
+    let tasks = await cache.get(cacheKey);
+
+    if (!tasks) {
+      tasks = await Task.find(optimizedQuery.query)
+        .sort(optimizedQuery.options.sort)
+        .limit(optimizedQuery.options.limit)
+        .skip(optimizedQuery.options.skip)
+        .populate(optimizedQuery.options.populate);
+      
+      // Cache for 10 minutes
+      await cache.set(cacheKey, tasks, 600);
+    }
+
+    const total = await Task.countDocuments(optimizedQuery.query);
 
     res.json({
       success: true,
-      tasks
+      tasks,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
     });
-  } catch (error) {
-    console.error('Get tasks error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error fetching tasks' 
-    });
-  }
-});
+  })
+);
 
 // @route   GET /api/tasks/:id
-// @desc    Get task by ID
+// @desc    Get a single task
 // @access  Private
-router.get('/:id', authMiddleware, async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id)
-      .populate('createdBy', 'name email')
-      .populate('assignee', 'name email')
-      .populate('team', 'name color members');
+router.get('/:id',
+  authMiddleware,
+  validateObjectId('id'),
+  asyncHandler(async (req, res) => {
+    // Try cache first
+    const cacheKey = cacheKeys.userTasks(req.user._id, { taskId: req.params.id });
+    let task = await cache.get(cacheKey);
 
     if (!task) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Task not found' 
-      });
-    }
+      task = await Task.findById(req.params.id)
+        .populate('createdBy', 'name email')
+        .populate('assignee', 'name email avatar')
+        .populate('team', 'name color members')
+        .populate('attachments');
+      
+      if (!task) {
+        return res.status(404).json({
+          success: false,
+          message: 'Task not found'
+        });
+      }
 
-    // Check if user is a team member
-    if (!task.team.members.includes(req.user._id)) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Access denied' 
-      });
+      // Check access
+      const userId = req.user._id.toString();
+      const isMember = task.team?.members?.some((memberId) => memberId.toString() === userId);
+      const isCreator = task.createdBy._id.toString() === userId;
+      const isAssignee = task.assignee?._id?.toString() === userId;
+
+      if (!isMember && !isCreator && !isAssignee && req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
+      
+      // Cache for 15 minutes
+      await cache.set(cacheKey, task, 900);
     }
 
     res.json({
       success: true,
       task
     });
-  } catch (error) {
-    console.error('Get task error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error fetching task' 
-    });
-  }
-});
+  })
+);
 
 // @route   PUT /api/tasks/:id
-// @desc    Update task
+// @desc    Update a task
 // @access  Private
-router.put('/:id', authMiddleware, async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id)
-      .populate('assignee', 'name email')
-      .populate('createdBy', 'name');
-
-    if (!task) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Task not found' 
-      });
-    }
-
-    // Verify user is team member
-    const team = await Team.findById(task.team);
-    if (!team.members.includes(req.user._id)) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Access denied' 
-      });
-    }
-
-    const { title, description, assignee, status, priority, dueDate, tags } = req.body;
-
+router.put('/:id',
+  authMiddleware,
+  validateObjectId('id'),
+  validate(schemas.updateTask),
+  asyncHandler(async (req, res) => {
+    const task = await requireTaskAccess(req.params.id, req.user);
     const oldStatus = task.status;
-    const oldAssignee = task.assignee ? task.assignee._id?.toString() || task.assignee.toString() : null;
-    const oldPriority = task.priority;
-
-    // Update fields
-    if (title) task.title = title;
-    if (description !== undefined) task.description = description;
-    if (assignee !== undefined) task.assignee = assignee;
-    if (status) task.status = status;
-    if (priority) task.priority = priority;
-    if (dueDate !== undefined) task.dueDate = dueDate;
-    if (tags) task.tags = tags;
-
-    await task.save();
-
-    const populatedTask = await Task.findById(task._id)
-      .populate('createdBy', 'name email')
-      .populate('assignee', 'name email')
-      .populate('team', 'name color');
-
-    // Create notification for status change
-    if (status && status !== oldStatus && task.assignee) {
-      const notification = new Notification({
-        user: task.assignee._id,
-        actor: req.user._id,
-        task: task._id,
-        type: 'status_change',
-        message: `Task "${task.title}" status changed from ${oldStatus} to ${status}`,
-        link: `/tasks/${task._id}`
-      });
-      await notification.save();
-
-      // Send email
-      if (task.assignee.email) {
-        await sendEmail(
-          task.assignee.email,
-          `Task Status Updated: ${task.title}`,
-          emailTemplates.statusChange(task.title, oldStatus, status, req.user.name)
-        );
+    const oldAssignee = task.assignee?.toString();
+    
+    const updates = req.body;
+    
+    // Log task update
+    await AuditLogger.logTaskAction(req.user._id, 'TASK_UPDATE', task._id, req, {
+      updates: Object.keys(updates),
+      oldValues: {
+        status: oldStatus,
+        assignee: oldAssignee
       }
+    });
+
+    const updatedTask = await Task.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true, runValidators: true }
+    ).populate('createdBy', 'name email')
+     .populate('assignee', 'name email avatar')
+     .populate('team', 'name color');
+
+    // Invalidate cache
+    await cacheInvalidation.invalidateTask(updatedTask);
+
+    // Record activity if status changed
+    if (updates.status && updates.status !== oldStatus) {
+      await recordTaskActivity({
+        taskId: task._id,
+        teamId: task.team,
+        actorId: req.user._id,
+        action: 'status_changed',
+        metadata: {
+          oldStatus,
+          newStatus: updates.status
+        }
+      });
+    }
+
+    // Record activity if assignee changed
+    if (updates.assignee && updates.assignee !== oldAssignee) {
+      await recordTaskActivity({
+        taskId: task._id,
+        teamId: task.team,
+        actorId: req.user._id,
+        action: 'assignee_changed',
+        metadata: {
+          oldAssignee,
+          newAssignee: updates.assignee
+        }
+      });
     }
 
     res.json({
       success: true,
       message: 'Task updated successfully',
-      task: populatedTask
+      task: updatedTask
     });
-  } catch (error) {
-    console.error('Update task error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error updating task' 
-    });
-  }
-});
+  })
+);
 
 // @route   DELETE /api/tasks/:id
-// @desc    Delete task
+// @desc    Delete a task
 // @access  Private
-router.delete('/:id', authMiddleware, async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id);
-
-    if (!task) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Task not found' 
-      });
-    }
-
+router.delete('/:id',
+  authMiddleware,
+  validateObjectId('id'),
+  asyncHandler(async (req, res) => {
+    const task = await requireTaskAccess(req.params.id, req.user);
+    
     // Only creator or admin can delete
     if (task.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Only task creator can delete this task' 
+      return res.status(403).json({
+        success: false,
+        message: 'Only task creator or admin can delete tasks'
       });
     }
-
-    await Task.findByIdAndDelete(req.params.id);
-
-    // Delete related notifications
-    await Notification.deleteMany({ task: req.params.id });
-
+    
+    // Log task deletion
+    await AuditLogger.logTaskAction(req.user._id, 'TASK_DELETE', task._id, req, {
+      title: task.title,
+      team: task.team
+    });
+    
+    // Delete attachments and files
+    const attachments = await TaskAttachment.find({ task: task._id });
+    for (const attachment of attachments) {
+      try {
+        const absolutePath = resolveAttachmentPath(attachment.relativePath);
+        if (fs.existsSync(absolutePath)) {
+          fs.unlinkSync(absolutePath);
+        }
+      } catch (error) {
+        logger.warn('Failed to delete attachment file:', error);
+      }
+    }
+    
+    await TaskAttachment.deleteMany({ task: task._id });
+    await TaskActivity.deleteMany({ task: task._id });
+    await Task.findByIdAndDelete(task._id);
+    
+    // Invalidate cache
+    await cacheInvalidation.invalidateTask(task);
+    
     res.json({
       success: true,
       message: 'Task deleted successfully'
     });
-  } catch (error) {
-    console.error('Delete task error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error deleting task' 
-    });
-  }
-});
+  })
+);
 
-// @route   GET /api/tasks/stats/dashboard
-// @desc    Get task statistics for dashboard
+// @route   PATCH /api/tasks/:id/status
+// @desc    Update task status only
 // @access  Private
-router.get('/stats/dashboard', authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).populate('teams');
-    const userTeamIds = user.teams.map(t => t._id);
-
-    // Get task counts by status
-    const taskStats = await Task.aggregate([
-      { $match: { team: { $in: userTeamIds } } },
-      { $group: { _id: '$status', count: { $sum: 1 } } }
-    ]);
-
-    // Get tasks assigned to user
-    const myTasks = await Task.countDocuments({
-      assignee: req.user._id,
-      status: { $ne: 'completed' }
+router.patch('/:id/status',
+  authMiddleware,
+  validateObjectId('id'),
+  validate(schemas.updateTask),
+  asyncHandler(async (req, res) => {
+    const task = await requireTaskAccess(req.params.id, req.user);
+    const { status } = req.body;
+    const oldStatus = task.status;
+    
+    if (!status || !['pending', 'in_progress', 'completed'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status'
+      });
+    }
+    
+    // Log status change
+    await AuditLogger.logTaskAction(req.user._id, 'TASK_STATUS_CHANGE', task._id, req, {
+      oldStatus,
+      newStatus: status
     });
-
-    // Get overdue tasks
-    const overdueTasks = await Task.countDocuments({
-      team: { $in: userTeamIds },
-      dueDate: { $lt: new Date() },
-      status: { $ne: 'completed' }
-    });
-
-    const historyStart = new Date();
-    historyStart.setDate(historyStart.getDate() - 6);
-
-    const statusHistoryRaw = await TaskActivity.aggregate([
-      {
-        $match: {
-          team: { $in: userTeamIds },
-          action: 'status_changed',
-          createdAt: { $gte: historyStart }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            day: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { '_id.day': 1 } }
-    ]);
-
-    const statusHistory = Array.from({ length: 7 }).map((_, index) => {
-      const date = new Date(historyStart.getTime());
-      date.setDate(historyStart.getDate() + index);
-      const key = date.toISOString().slice(0, 10);
-      const entry = statusHistoryRaw.find(item => item._id.day === key);
-      return {
-        date: key,
-        count: entry ? entry.count : 0
-      };
-    });
-
-    res.json({
-      success: true,
-      stats: {
-        byStatus: taskStats,
-        myTasks,
-        overdueTasks,
-        statusHistory
+    
+    const updatedTask = await Task.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    ).populate('createdBy', 'name email')
+     .populate('assignee', 'name email avatar')
+     .populate('team', 'name color');
+    
+    // Record activity
+    await recordTaskActivity({
+      taskId: task._id,
+      teamId: task.team,
+      actorId: req.user._id,
+      action: 'status_changed',
+      metadata: {
+        oldStatus,
+        newStatus: status
       }
     });
-  } catch (error) {
-    console.error('Get stats error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error fetching stats' 
-    });
-  }
-});
-
-// @route   POST /api/tasks/test-email-notifications
-// @desc    Manually trigger email notifications check (for testing)
-// @access  Private
-router.post('/test-email-notifications', authMiddleware, async (req, res) => {
-  try {
-    const now = new Date();
     
-    // Find overdue tasks assigned to the current user
-    const overdueTasks = await Task.find({
-      assignee: req.user._id,
-      dueDate: { $lt: now },
-      status: { $ne: 'completed' }
-    });
-
-    // Find upcoming tasks (within 24 hours)
-    const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const upcomingTasks = await Task.find({
-      assignee: req.user._id,
-      dueDate: { $gte: now, $lte: next24Hours },
-      status: { $ne: 'completed' }
-    });
-
-    const results = {
-      overdue: [],
-      upcoming: []
-    };
-
-    // Send overdue emails
-    for (const task of overdueTasks) {
-      const daysOverdue = Math.ceil((now - task.dueDate) / (1000 * 60 * 60 * 24));
-      const emailResult = await sendEmail(
-        req.user.email,
-        `🚨 URGENT: Task "${task.title}" is Overdue`,
-        emailTemplates.taskOverdue(task.title, daysOverdue)
-      );
-      results.overdue.push({
-        task: task.title,
-        daysOverdue,
-        emailSent: emailResult.success,
-        error: emailResult.error || emailResult.message
-      });
+    // Send email notification for status change to task creator and assignee
+    if (status === 'completed' && (updatedTask.assignee || updatedTask.createdBy)) {
+      const notificationUsers = [];
+      
+      if (updatedTask.assignee && updatedTask.assignee._id.toString() !== req.user._id.toString()) {
+        notificationUsers.push(updatedTask.assignee);
+      }
+      
+      if (updatedTask.createdBy._id.toString() !== req.user._id.toString()) {
+        notificationUsers.push(updatedTask.createdBy);
+      }
+      
+      for (const user of notificationUsers) {
+        // Create notification
+        const notification = new Notification({
+          user: user._id,
+          actor: req.user._id,
+          task: task._id,
+          type: 'status_change',
+          message: `Task "${updatedTask.title}" marked as ${status}`,
+          link: `/tasks/${task._id}`
+        });
+        await notification.save();
+        
+        // Send email
+        await sendEmail(
+          user.email,
+          `Task Status Updated: ${updatedTask.title}`,
+          emailTemplates.statusChange({
+            taskTitle: updatedTask.title,
+            oldStatus,
+            newStatus: status,
+            changedBy: req.user.name,
+            taskLink: `${process.env.CLIENT_URL}/tasks/${task._id}`,
+            dueDate: updatedTask.dueDate
+          })
+        );
+      }
     }
-
-    // Send upcoming deadline emails
-    for (const task of upcomingTasks) {
-      const hoursLeft = Math.round((task.dueDate - now) / (1000 * 60 * 60));
-      const emailResult = await sendEmail(
-        req.user.email,
-        `Reminder: Task "${task.title}" due soon`,
-        emailTemplates.deadlineReminder(task.title, hoursLeft)
-      );
-      results.upcoming.push({
-        task: task.title,
-        hoursLeft,
-        emailSent: emailResult.success,
-        error: emailResult.error || emailResult.message
-      });
-    }
-
+    
+    // Invalidate cache
+    await cacheInvalidation.invalidateTask(updatedTask);
+    
     res.json({
       success: true,
-      message: 'Email notification test completed',
-      results,
-      emailConfigured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASS)
+      message: 'Task status updated successfully',
+      task: updatedTask
     });
-  } catch (error) {
-    console.error('Test email error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error testing emails',
-      error: error.message
-    });
-  }
-});
+  })
+);
 
 export default router;
