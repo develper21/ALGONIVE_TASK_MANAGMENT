@@ -32,7 +32,7 @@ const Navbar = ({ onToggleSidebar }) => {
 
   useEffect(() => {
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000); // Poll every 30s
+    const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -49,14 +49,12 @@ const Navbar = ({ onToggleSidebar }) => {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo + mobile menu */}
           <div className="flex items-center space-x-3">
             <button
               type="button"
               onClick={onToggleSidebar}
               className="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-              aria-label="Open navigation"
-            >
+              aria-label="Open navigation">
               <Menu size={20} />
             </button>
             <div className="flex items-center space-x-3">
@@ -76,13 +74,10 @@ const Navbar = ({ onToggleSidebar }) => {
             </div>
           </div>
 
-          {/* Right side */}
           <div className="flex items-center space-x-4">
-            {/* Notifications */}
             <button
               onClick={() => navigate('/notifications')}
-              className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
+              className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
               <Bell size={20} />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
@@ -91,12 +86,10 @@ const Navbar = ({ onToggleSidebar }) => {
               )}
             </button>
 
-            {/* User Menu */}
             <div className="flex items-center space-x-3 pl-3 border-l border-gray-200">
               <button
                 onClick={() => navigate('/profile')}
-                className="flex items-center space-x-2 focus:outline-none"
-              >
+                className="flex items-center space-x-2 focus:outline-none">
                 <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
                   <User size={16} className="text-primary-600" />
                 </div>
