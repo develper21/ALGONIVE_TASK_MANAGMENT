@@ -35,9 +35,7 @@ const TaskCard = ({ task, onClick }) => {
     <div
       onClick={onClick}
       className="card hover:shadow-md transition-all cursor-pointer border-l-4 animate-fade-in"
-      style={{ borderLeftColor: task.team?.color || '#6366f1' }}
-    >
-      {/* Header */}
+      style={{ borderLeftColor: task.team?.color || '#6366f1' }}>
       <div className="flex items-start justify-between mb-3">
         <h3 className="font-semibold text-gray-900 flex-1 line-clamp-2">{task.title}</h3>
         <span className={`badge ${getPriorityColor(task.priority)} ml-2`}>
@@ -45,12 +43,10 @@ const TaskCard = ({ task, onClick }) => {
         </span>
       </div>
 
-      {/* Description */}
       {task.description && (
         <p className="text-sm text-gray-600 mb-3 line-clamp-2">{task.description}</p>
       )}
 
-      {/* Tags */}
       {task.tags && task.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {task.tags.map((tag, index) => (
@@ -61,15 +57,12 @@ const TaskCard = ({ task, onClick }) => {
         </div>
       )}
 
-      {/* Footer */}
       <div className="flex items-center justify-between text-sm pt-3 border-t border-gray-100">
-        {/* Assignee */}
         <div className="flex items-center space-x-2 text-gray-600">
           <User size={14} />
           <span className="text-xs">{task.assignee?.name || 'Unassigned'}</span>
         </div>
 
-        {/* Due Date */}
         {task.dueDate && (
           <div className={`flex items-center space-x-1 ${isOverdue ? 'text-red-600' : 'text-gray-600'}`}>
             {isOverdue ? <AlertCircle size={14} /> : <Calendar size={14} />}
@@ -80,7 +73,6 @@ const TaskCard = ({ task, onClick }) => {
         )}
       </div>
 
-      {/* Status Badge */}
       <div className="mt-3">
         <span className={`badge ${getStatusColor(task.status)}`}>
           {task.status.replace('_', ' ')}
