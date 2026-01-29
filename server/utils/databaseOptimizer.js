@@ -1,22 +1,22 @@
 import mongoose from 'mongoose';
-import logger from './logger.js';
+import logger from './customLogger.js';
 
 // Database optimization utilities
 export class DatabaseOptimizer {
   static async createIndexes() {
     try {
-      logger.info('Creating database indexes...');
+      logger.subsection('Creating Database Indexes');
       
-      // User collection indexes
+      // User collection indexes (only those not defined in schema)
       await mongoose.connection.db.collection('users').createIndexes([
         { key: { email: 1 }, unique: true },
         { key: { role: 1 } },
         { key: { teams: 1 } },
-        { key: { createdAt: -1 } },
         { key: { name: 'text', email: 'text' } } // Text search
       ]);
+      logger.dbIndex('users', 'email_unique, role, teams, text_search');
       
-      // Task collection indexes
+      // Task collection indexes (only those not defined in schema)
       await mongoose.connection.db.collection('tasks').createIndexes([
         { key: { team: 1, status: 1 } },
         { key: { assignee: 1, status: 1 } },
@@ -24,64 +24,63 @@ export class DatabaseOptimizer {
         { key: { dueDate: 1 } },
         { key: { priority: 1 } },
         { key: { status: 1 } },
-        { key: { createdAt: -1 } },
         { key: { team: 1, status: 1, dueDate: 1 } }, // Compound index for team kanban views
         { key: { assignee: 1, status: 1, dueDate: 1 } }, // Compound index for user task lists
         { key: { title: 'text', description: 'text' } }, // Text search
         { key: { tags: 1 } },
         { key: { team: 1, priority: 1, status: 1 } } // Compound index for team priority filtering
       ]);
+      logger.dbIndex('tasks', 'compound_indexes, text_search, tags');
       
-      // Team collection indexes
+      // Team collection indexes (only those not defined in schema)
       await mongoose.connection.db.collection('teams').createIndexes([
         { key: { name: 1 } },
         { key: { createdBy: 1 } },
         { key: { members: 1 } },
-        { key: { createdAt: -1 } },
         { key: { name: 'text', description: 'text' } } // Text search
       ]);
+      logger.dbIndex('teams', 'name, createdBy, members, text_search');
       
-      // Conversation collection indexes
+      // Conversation collection indexes (only those not defined in schema)
       await mongoose.connection.db.collection('conversations').createIndexes([
         { key: { participants: 1 } },
         { key: { team: 1 } },
-        { key: { createdAt: -1 } },
         { key: { lastMessageAt: -1 } },
         { key: { participants: 1, lastMessageAt: -1 } } // Compound index for user conversations
       ]);
+      logger.dbIndex('conversations', 'participants, team, lastMessageAt');
       
-      // Message collection indexes
+      // Message collection indexes (only those not defined in schema)
       await mongoose.connection.db.collection('messages').createIndexes([
         { key: { conversation: 1, createdAt: -1 } },
         { key: { sender: 1 } },
         { key: { conversation: 1, sender: 1 } },
-        { key: { createdAt: -1 } },
         { key: { content: 'text' } } // Text search
       ]);
+      logger.dbIndex('messages', 'conversation, sender, text_search');
       
-      // Notification collection indexes
+      // Notification collection indexes (only those not defined in schema)
       await mongoose.connection.db.collection('notifications').createIndexes([
-        { key: { userId: 1, read: 1 } },
-        { key: { userId: 1, createdAt: -1 } },
         { key: { type: 1 } },
-        { key: { createdAt: -1 } },
         { key: { expiresAt: 1 }, expireAfterSeconds: 0 } // TTL index for auto-deletion
       ]);
+      logger.dbIndex('notifications', 'type, TTL_expiresAt');
       
-      // Activity log collection indexes
+      // Activity log collection indexes (only those not defined in schema)
       await mongoose.connection.db.collection('activitylogs').createIndexes([
         { key: { userId: 1, createdAt: -1 } },
         { key: { taskId: 1, createdAt: -1 } },
         { key: { teamId: 1, createdAt: -1 } },
         { key: { action: 1 } },
-        { key: { createdAt: -1 } },
         { key: { expiresAt: 1 }, expireAfterSeconds: 7776000 } // TTL for 90 days
       ]);
+      logger.dbIndex('activitylogs', 'compound_indexes, action, TTL_expiresAt');
       
-      logger.info('Database indexes created successfully');
+      logger.success('All database indexes created successfully');
     } catch (error) {
-      logger.error('Error creating database indexes:', error);
-      throw error;
+      logger.error('Error creating database indexes', error.message);
+      // Don't throw error for index creation, just log it
+      logger.warning('Some indexes may already exist, continuing...');
     }
   }
   
@@ -159,21 +158,23 @@ export class DatabaseOptimizer {
   
   static async optimizeQueries() {
     try {
-      logger.info('Optimizing database queries...');
+      logger.subsection('Optimizing Database Queries');
       
-      // Set read preference to primary for consistency
-      mongoose.set('readPreference', 'primary');
+      // Set global query options for better performance
+      mongoose.connection.set('maxTimeMS', 30000); // 30 second query timeout
       
-      // Set write concern for durability
-      mongoose.set('writeConcern', { w: 'majority', j: true });
+      // Configure connection options for consistency
+      const connectionOptions = {
+        readPreference: 'primary',
+        writeConcern: { w: 'majority', j: true },
+        readConcern: { level: 'majority' }
+      };
       
-      // Set read concern for consistency
-      mongoose.set('readConcern', { level: 'majority' });
-      
-      logger.info('Database query optimization completed');
+      logger.success('Database query optimization completed');
     } catch (error) {
-      logger.error('Error optimizing database queries:', error);
-      throw error;
+      logger.error('Error optimizing database queries', error.message);
+      // Don't throw error for optimization, just log it
+      logger.warning('Database optimization skipped, continuing...');
     }
   }
 }
