@@ -31,6 +31,7 @@ const taskActivitySchema = new mongoose.Schema({
 
 taskActivitySchema.index({ team: 1, createdAt: -1 });
 taskActivitySchema.index({ task: 1, createdAt: -1 });
+taskActivitySchema.index({ actor: 1, createdAt: -1 });
 
 const TaskActivity = mongoose.model('TaskActivity', taskActivitySchema);
 
