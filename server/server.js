@@ -15,7 +15,7 @@ import User from './models/User.js';
 import { initSocket } from './utils/socket.js';
 import { ensureConversationAccess } from './services/messagingService.js';
 import { setUserOnline, setUserOffline, getOnlineUserIds } from './utils/presenceStore.js';
-import logger from './utils/logger.js';
+import logger from './utils/customLogger.js';
 import { errorHandler, asyncHandler, notFound } from './utils/errorHandler.js';
 import { securityHeaders, securityMiddleware } from './utils/security.js';
 import { generalLimiter, authLimiter, uploadLimiter } from './utils/rateLimiter.js';
@@ -80,7 +80,16 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Request logging middleware
-app.use(logger.httpLogger);
+app.use((req, res, next) => {
+  const start = Date.now();
+  
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    logger.apiRequest(req, res, duration);
+  });
+  
+  next();
+});
 
 // Request start time for performance tracking
 app.use((req, res, next) => {
@@ -267,72 +276,87 @@ initSocket(io);
 // Connect to MongoDB and start server
 const startServer = async () => {
   try {
+    logger.startup();
+    
     // Check if MongoDB URL is provided
     if (!process.env.MONGODB_URL) {
-      logger.error('❌ MONGODB_URL is not defined in .env file');
+      logger.error('MongoDB URL not found in environment variables');
       logger.info('Please create a .env file with your MongoDB Atlas connection string');
       process.exit(1);
     }
 
+    logger.step(1, 7, 'Connecting to MongoDB');
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URL);
-    logger.info('✅ Connected to MongoDB Atlas');
+    logger.dbConnect('MongoDB Atlas');
 
+    logger.step(2, 7, 'Initializing Redis cache');
     // Initialize Redis cache (optional)
     try {
       await cache.connect();
+      logger.success('Redis cache connected');
     } catch (error) {
-      logger.warn('Redis connection failed, continuing without cache:', error.message);
+      logger.warning('Redis connection failed, continuing without cache', error.message);
     }
 
+    logger.step(3, 7, 'Creating database indexes');
     // Create database indexes
     await DatabaseOptimizer.createIndexes();
+    logger.success('Database indexes created');
 
+    logger.step(4, 7, 'Optimizing database queries');
     // Optimize database queries
     await DatabaseOptimizer.optimizeQueries();
+    logger.success('Database queries optimized');
 
+    logger.step(5, 7, 'Starting HTTP server');
     // Start the server
     httpServer.listen(PORT, () => {
-      logger.info(`🚀 Server is running on port ${PORT}`);
-      logger.info(`📍 API URL: http://localhost:${PORT}`);
-      logger.info(`🏥 Health check: http://localhost:${PORT}/api/health`);
-      logger.info(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.step(6, 7, 'Server started successfully');
+      logger.info(`Server running on port ${PORT}`);
+      logger.info(`API URL: http://localhost:${PORT}`);
+      logger.info(`Health check: http://localhost:${PORT}/api/health`);
+      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     });
 
+    logger.step(7, 7, 'Starting background services');
     // Start reminder cron job
     startReminderJob();
+    logger.success('Reminder cron job started');
 
     // Schedule periodic database cleanup
     setInterval(async () => {
       try {
         await DatabaseOptimizer.cleanupExpiredData();
+        logger.debug('Daily database cleanup completed');
       } catch (error) {
-        logger.error('Database cleanup error:', error);
+        logger.error('Database cleanup error', error.message);
       }
     }, 24 * 60 * 60 * 1000); // Daily cleanup
 
-    // Log successful startup
-    logger.audit('SYSTEM_STARTUP', 'system', {
-      port: PORT,
-      nodeVersion: process.version,
-      environment: process.env.NODE_ENV || 'development'
-    });
+    logger.startupComplete(PORT);
 
   } catch (error) {
-    logger.error('❌ Failed to start server:', error);
+    logger.error('Failed to start server', error.message);
     process.exit(1);
   }
 };
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
-  logger.error('Unhandled Promise Rejection:', err);
+  logger.error('Unhandled Promise Rejection', err.message);
+  if (err.stack) {
+    console.error(chalk.gray(err.stack));
+  }
   process.exit(1);
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
-  logger.error('Uncaught Exception:', err);
+  logger.error('Uncaught Exception', err.message);
+  if (err.stack) {
+    console.error(chalk.gray(err.stack));
+  }
   process.exit(1);
 });
 
@@ -342,16 +366,21 @@ process.on('SIGTERM', async () => {
   
   // Close HTTP server
   httpServer.close(async () => {
-    logger.info('HTTP server closed');
+    logger.success('HTTP server closed');
     
     // Close database connections
     await mongoose.connection.close();
-    logger.info('MongoDB connection closed');
+    logger.dbDisconnect('MongoDB');
     
     // Close Redis connection
-    await cache.disconnect();
-    logger.info('Redis connection closed');
+    try {
+      await cache.disconnect();
+      logger.success('Redis connection closed');
+    } catch (error) {
+      logger.warning('Error closing Redis connection', error.message);
+    }
     
+    logger.success('Graceful shutdown completed');
     process.exit(0);
   });
 });
@@ -361,16 +390,21 @@ process.on('SIGINT', async () => {
   
   // Close HTTP server
   httpServer.close(async () => {
-    logger.info('HTTP server closed');
+    logger.success('HTTP server closed');
     
     // Close database connections
     await mongoose.connection.close();
-    logger.info('MongoDB connection closed');
+    logger.dbDisconnect('MongoDB');
     
     // Close Redis connection
-    await cache.disconnect();
-    logger.info('Redis connection closed');
+    try {
+      await cache.disconnect();
+      logger.success('Redis connection closed');
+    } catch (error) {
+      logger.warning('Error closing Redis connection', error.message);
+    }
     
+    logger.success('Graceful shutdown completed');
     process.exit(0);
   });
 });
