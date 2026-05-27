@@ -1,21 +1,28 @@
-import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { UserPlus, Mail, Lock, User as UserIcon, Loader2 } from 'lucide-react';
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { UserPlus, Mail, Lock, User as UserIcon, Loader2 } from "lucide-react";
 
 const Signup = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('member');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("member");
+  const [adminInviteToken, setAdminInviteToken] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const { signup } = useAuth();
   const navigate = useNavigate();
 
   const passwordStrength = useMemo(() => {
-    if (!password) return { label: 'Enter a password', color: 'text-gray-400', bar: 'bg-gray-200', score: 0 };
+    if (!password)
+      return {
+        label: "Enter a password",
+        color: "text-gray-400",
+        bar: "bg-gray-200",
+        score: 0,
+      };
     let score = 0;
     if (password.length >= 8) score += 1;
     if (/[A-Z]/.test(password)) score += 1;
@@ -23,35 +30,61 @@ const Signup = () => {
     if (/[^A-Za-z0-9]/.test(password)) score += 1;
 
     if (score >= 3) {
-      return { label: 'Strong password', color: 'text-green-600', bar: 'bg-green-500', score };
+      return {
+        label: "Strong password",
+        color: "text-green-600",
+        bar: "bg-green-500",
+        score,
+      };
     } else if (score === 2) {
-      return { label: 'Medium strength', color: 'text-amber-600', bar: 'bg-amber-500', score };
+      return {
+        label: "Medium strength",
+        color: "text-amber-600",
+        bar: "bg-amber-500",
+        score,
+      };
     }
-    return { label: 'Weak password', color: 'text-red-600', bar: 'bg-red-500', score };
+    return {
+      label: "Weak password",
+      color: "text-red-600",
+      bar: "bg-red-500",
+      score,
+    };
   }, [password]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (role === "admin" && !adminInviteToken.trim()) {
+      setError("Admin invite token is required");
       return;
     }
 
     setLoading(true);
-    
-    const result = await signup(name, email, password, role);
-    
+
+    const result = await signup(
+      name,
+      email,
+      password,
+      role,
+      adminInviteToken.trim(),
+    );
+
     if (result.success) {
-      navigate('/dashboard');
+      navigate("/dashboard");
     }
-    
+
     setLoading(false);
   };
 
@@ -66,15 +99,24 @@ const Signup = () => {
                 <span className="text-white text-2xl font-semibold">A</span>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Algonive</p>
+                <p className="text-xs uppercase tracking-[0.3em] text-gray-400">
+                  Algonive
+                </p>
                 <p className="text-sm text-gray-500">Project Workspace</p>
               </div>
             </div>
 
             <div className="mb-10">
-              <p className="text-sm text-gray-500 uppercase tracking-wide mb-2">Create Account</p>
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900">Start your workspace</h1>
-              <p className="text-gray-500 mt-2">Set up your team profile and access collaborative tools in minutes.</p>
+              <p className="text-sm text-gray-500 uppercase tracking-wide mb-2">
+                Create Account
+              </p>
+              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900">
+                Start your workspace
+              </h1>
+              <p className="text-gray-500 mt-2">
+                Set up your team profile and access collaborative tools in
+                minutes.
+              </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -85,9 +127,14 @@ const Signup = () => {
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Full Name</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Full Name
+                </label>
                 <div className="relative">
-                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <UserIcon
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                    size={18}
+                  />
                   <input
                     type="text"
                     value={name}
@@ -100,9 +147,14 @@ const Signup = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Email</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Email
+                </label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Mail
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                    size={18}
+                  />
                   <input
                     type="email"
                     value={email}
@@ -116,9 +168,14 @@ const Signup = () => {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Password</label>
+                  <label className="text-sm font-medium text-gray-700">
+                    Password
+                  </label>
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <Lock
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                      size={18}
+                    />
                     <input
                       type="password"
                       value={password}
@@ -132,16 +189,25 @@ const Signup = () => {
                     <div className="h-1 rounded-full bg-gray-200 overflow-hidden">
                       <div
                         className={`${passwordStrength.bar} h-full transition-all duration-200`}
-                        style={{ width: `${(passwordStrength.score / 4) * 100}%` }}
+                        style={{
+                          width: `${(passwordStrength.score / 4) * 100}%`,
+                        }}
                       ></div>
                     </div>
-                    <p className={`text-xs mt-2 ${passwordStrength.color}`}>{passwordStrength.label}</p>
+                    <p className={`text-xs mt-2 ${passwordStrength.color}`}>
+                      {passwordStrength.label}
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Confirm Password</label>
+                  <label className="text-sm font-medium text-gray-700">
+                    Confirm Password
+                  </label>
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <Lock
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                      size={18}
+                    />
                     <input
                       type="password"
                       value={confirmPassword}
@@ -155,16 +221,45 @@ const Signup = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Role</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Role
+                </label>
                 <select
                   value={role}
-                  onChange={(e) => setRole(e.target.value)}
+                  onChange={(e) => {
+                    setRole(e.target.value);
+                    if (e.target.value !== "admin") {
+                      setAdminInviteToken("");
+                    }
+                  }}
                   className="w-full rounded-2xl border border-gray-200 bg-gray-50/60 focus:bg-white focus:border-gray-400 px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5"
                 >
                   <option value="member">Team Member</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
+
+              {role === "admin" && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Admin Invite Token
+                  </label>
+                  <div className="relative">
+                    <Lock
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                      size={18}
+                    />
+                    <input
+                      type="password"
+                      value={adminInviteToken}
+                      onChange={(e) => setAdminInviteToken(e.target.value)}
+                      className="w-full rounded-2xl border border-gray-200 bg-gray-50/60 focus:bg-white focus:border-gray-400 px-12 py-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black/5"
+                      placeholder="Enter admin invite token"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -187,8 +282,11 @@ const Signup = () => {
           </div>
 
           <p className="text-center text-sm text-gray-500 mt-12">
-            Already have an account?{' '}
-            <Link to="/login" className="text-gray-900 font-semibold hover:underline">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="text-gray-900 font-semibold hover:underline"
+            >
               Sign In
             </Link>
           </p>
@@ -197,22 +295,44 @@ const Signup = () => {
         {/* Right Story Panel */}
         <div className="bg-[#0f172a] text-white relative p-10 lg:p-14 flex flex-col gap-8">
           <div>
-            <p className="text-sm text-white/60 mb-3">Why teams choose Algonive</p>
-            <h2 className="text-3xl font-semibold leading-tight">Plan, execute and measure in one place</h2>
+            <p className="text-sm text-white/60 mb-3">
+              Why teams choose Algonive
+            </p>
+            <h2 className="text-3xl font-semibold leading-tight">
+              Plan, execute and measure in one place
+            </h2>
             <p className="text-white/60 mt-4 text-sm">
-              Launch faster with templates, rich analytics widgets and realtime collaboration built for modern teams.
+              Launch faster with templates, rich analytics widgets and realtime
+              collaboration built for modern teams.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             {[
-              { label: 'Projects live', value: '120+', detail: 'across global teams' },
-              { label: 'Avg. response', value: '2m 14s', detail: 'support turnaround' },
-              { label: 'Engagement', value: '98%', detail: 'teams active weekly' },
-              { label: 'NPS Score', value: '72', detail: 'top percentile' }
+              {
+                label: "Projects live",
+                value: "120+",
+                detail: "across global teams",
+              },
+              {
+                label: "Avg. response",
+                value: "2m 14s",
+                detail: "support turnaround",
+              },
+              {
+                label: "Engagement",
+                value: "98%",
+                detail: "teams active weekly",
+              },
+              { label: "NPS Score", value: "72", detail: "top percentile" },
             ].map((card) => (
-              <div key={card.label} className="rounded-2xl bg-white/5 border border-white/10 p-4">
-                <p className="text-xs uppercase tracking-wide text-white/50">{card.label}</p>
+              <div
+                key={card.label}
+                className="rounded-2xl bg-white/5 border border-white/10 p-4"
+              >
+                <p className="text-xs uppercase tracking-wide text-white/50">
+                  {card.label}
+                </p>
                 <p className="text-2xl font-semibold mt-2">{card.value}</p>
                 <p className="text-sm text-white/60 mt-1">{card.detail}</p>
               </div>
@@ -221,12 +341,20 @@ const Signup = () => {
 
           <div className="mt-auto space-y-4">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-sm text-white/60">“Algonive centralizes our operations. Our distributed teams stay aligned with zero effort.”</p>
-              <p className="text-sm font-semibold mt-3">— Priya S., Product Ops Lead</p>
+              <p className="text-sm text-white/60">
+                “Algonive centralizes our operations. Our distributed teams stay
+                aligned with zero effort.”
+              </p>
+              <p className="text-sm font-semibold mt-3">
+                — Priya S., Product Ops Lead
+              </p>
             </div>
             <div className="flex space-x-2">
               {[0, 1, 2].map((idx) => (
-                <span key={idx} className={`h-1 rounded-full flex-1 ${idx === 0 ? 'bg-white' : 'bg-white/30'}`}></span>
+                <span
+                  key={idx}
+                  className={`h-1 rounded-full flex-1 ${idx === 0 ? "bg-white" : "bg-white/30"}`}
+                ></span>
               ))}
             </div>
           </div>
