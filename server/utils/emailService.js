@@ -39,7 +39,15 @@ export const sendEmail = async (to, subject, html) => {
 
 // Email templates
 export const emailTemplates = {
-  taskAssignment: (taskTitle, assignerName, dueDate) => `
+  taskAssignment: (taskTitle, assignerName, dueDate) => {
+    if (typeof taskTitle === 'object' && taskTitle !== null) {
+      const data = taskTitle;
+      taskTitle = data.taskTitle;
+      assignerName = data.assignedBy;
+      dueDate = data.dueDate;
+    }
+
+    return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #6366f1;">New Task Assigned</h2>
       <p>Hi there,</p>
@@ -51,7 +59,8 @@ export const emailTemplates = {
       <p>Log in to your dashboard to view details and start working on it.</p>
       <a href="${process.env.CLIENT_URL}/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 10px;">View Task</a>
     </div>
-  `,
+  `;
+  },
   
   deadlineReminder: (taskTitle, hoursLeft) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -67,7 +76,16 @@ export const emailTemplates = {
     </div>
   `,
   
-  statusChange: (taskTitle, oldStatus, newStatus, changedBy) => `
+  statusChange: (taskTitle, oldStatus, newStatus, changedBy) => {
+    if (typeof taskTitle === 'object' && taskTitle !== null) {
+      const data = taskTitle;
+      taskTitle = data.taskTitle;
+      oldStatus = data.oldStatus;
+      newStatus = data.newStatus;
+      changedBy = data.changedBy;
+    }
+
+    return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #10b981;">Task Status Updated</h2>
       <p>Hi there,</p>
@@ -80,7 +98,8 @@ export const emailTemplates = {
       </div>
       <a href="${process.env.CLIENT_URL}/dashboard" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 10px;">View Task</a>
     </div>
-  `,
+  `;
+  },
 
   taskOverdue: (taskTitle, daysOverdue) => `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
