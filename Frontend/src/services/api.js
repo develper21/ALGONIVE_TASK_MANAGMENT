@@ -27,6 +27,21 @@ const setCachedData = (key, data) => {
   requestCache.set(key, { data, timestamp: Date.now() });
 };
 
+const cachedResponse = (data) => Promise.resolve({ data });
+
+const clearTaskCache = () => {
+  Array.from(requestCache.keys()).forEach((key) => {
+    if (
+      key.startsWith('tasks_') ||
+      key.startsWith('task_') ||
+      key.startsWith('activity_feed_') ||
+      key === 'task_stats'
+    ) {
+      requestCache.delete(key);
+    }
+  });
+};
+
 // Add token to requests
 api.interceptors.request.use(
   (config) => {
@@ -107,21 +122,17 @@ export const teamAPI = {
 
 // Task APIs
 export const taskAPI = {
-  create: (data) => api.post('/tasks', data),
+  create: (data) => {
+    clearTaskCache();
+    return api.post('/tasks', data).finally(clearTaskCache);
+  },
   getAll: (params) => {
-    const cacheKey = `tasks_${JSON.stringify(params)}`;
-    const cached = getCachedData(cacheKey);
-    if (cached) return Promise.resolve(cached);
-    
-    return api.get('/tasks', { params }).then(response => {
-      setCachedData(cacheKey, response.data);
-      return response;
-    });
+    return api.get('/tasks', { params });
   },
   getById: (id) => {
     const cacheKey = `task_${id}`;
     const cached = getCachedData(cacheKey);
-    if (cached) return Promise.resolve(cached);
+    if (cached) return cachedResponse(cached);
     
     return api.get(`/tasks/${id}`).then(response => {
       setCachedData(cacheKey, response.data);
@@ -129,53 +140,33 @@ export const taskAPI = {
     });
   },
   update: (id, data) => {
-    // Clear cache on update
-    requestCache.delete(`task_${id}`);
-    requestCache.delete(`tasks_${JSON.stringify({})}`);
-    return api.put(`/tasks/${id}`, data);
+    clearTaskCache();
+    return api.put(`/tasks/${id}`, data).finally(clearTaskCache);
   },
   delete: (id) => {
-    // Clear cache on delete
-    requestCache.delete(`task_${id}`);
-    requestCache.delete(`tasks_${JSON.stringify({})}`);
-    return api.delete(`/tasks/${id}`);
+    clearTaskCache();
+    return api.delete(`/tasks/${id}`).finally(clearTaskCache);
   },
   getStats: () => {
-    const cacheKey = 'task_stats';
-    const cached = getCachedData(cacheKey);
-    if (cached) return Promise.resolve(cached);
-    
-    return api.get('/tasks/stats/dashboard').then(response => {
-      setCachedData(cacheKey, response.data);
-      return response;
-    });
+    return api.get('/tasks/stats/dashboard');
   },
   getActivityFeed: (params) => {
-    const cacheKey = `activity_feed_${JSON.stringify(params)}`;
-    const cached = getCachedData(cacheKey);
-    if (cached) return Promise.resolve(cached);
-    
-    return api.get('/tasks/activity/feed', { params }).then(response => {
-      setCachedData(cacheKey, response.data);
-      return response;
-    });
+    return api.get('/tasks/activity/feed', { params });
   },
   getAttachments: (taskId) => api.get(`/tasks/${taskId}/attachments`),
   uploadAttachments: (taskId, formData) => {
-    // Clear cache on upload
-    requestCache.delete(`task_${taskId}`);
+    clearTaskCache();
     return api.post(`/tasks/${taskId}/attachments`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    }).finally(clearTaskCache);
   },
   downloadAttachment: (attachmentId) => api.get(`/tasks/attachments/${attachmentId}/download`, {
     responseType: 'blob'
   }),
   // New enhanced endpoints
   updateStatus: (id, data) => {
-    // Clear cache on status update
-    requestCache.delete(`task_${id}`);
-    return api.patch(`/tasks/${id}/status`, data);
+    clearTaskCache();
+    return api.patch(`/tasks/${id}/status`, data).finally(clearTaskCache);
   },
   sendEmailNotifications: () => api.get('/tasks/send-email-notifications')
 };
