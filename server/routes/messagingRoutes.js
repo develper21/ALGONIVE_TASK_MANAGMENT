@@ -150,6 +150,8 @@ router.post('/conversations/direct', authMiddleware, async (req, res) => {
       });
     }
 
+    await conversation.populate('team', 'name color');
+
     res.status(201).json({ success: true, conversation: conversationToResponse(conversation, req.user._id) });
   } catch (error) {
     console.error('Direct conversation error:', error);
@@ -184,6 +186,8 @@ router.post('/conversations/team', authMiddleware, async (req, res) => {
       });
     }
 
+    await conversation.populate('team', 'name color');
+
     res.status(201).json({ success: true, conversation: conversationToResponse(conversation, req.user._id) });
   } catch (error) {
     console.error('Team conversation error:', error);
@@ -204,7 +208,9 @@ router.get('/conversations', authMiddleware, async (req, res) => {
 
     const conversations = await Conversation.find({
       $or: [directQuery, { type: 'team', ...teamFilter }]
-    }).sort({ lastMessageAt: -1, updatedAt: -1 });
+    })
+      .populate('team', 'name color')
+      .sort({ lastMessageAt: -1, updatedAt: -1 });
 
     res.json({
       success: true,
@@ -336,7 +342,10 @@ router.post('/messages', authMiddleware, async (req, res) => {
       targetRooms.add(`user:${req.user._id}`);
       (recipients || []).forEach((id) => targetRooms.add(`user:${id}`));
 
-      targetRooms.forEach((room) => io.to(room).emit('messaging:new', payload));
+      targetRooms.forEach((room) => {
+        io.to(room).emit('messaging:new', payload);
+        io.to(room).emit('messaging:new-message', payload);
+      });
     }
 
     res.status(201).json({ success: true, message });
