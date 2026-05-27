@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { taskAPI } from '../services/api';
-import Layout from '../components/Layout';
-import TaskCard from '../components/TaskCard';
-import { Plus, Search, Filter } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { taskAPI } from "../services/api";
+import Layout from "../components/Layout";
+import TaskCard from "../components/TaskCard";
+import { Plus, Search, Filter } from "lucide-react";
+import toast from "react-hot-toast";
 
 const TaskBoard = () => {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTeam, setSelectedTeam] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTeam, setSelectedTeam] = useState("");
 
   useEffect(() => {
     fetchTasks();
@@ -22,31 +22,53 @@ const TaskBoard = () => {
       setLoading(true);
       const params = {};
       if (selectedTeam) params.team = selectedTeam;
-      
+
       const response = await taskAPI.getAll(params);
       setTasks(response.data.tasks);
     } catch (error) {
-      console.error('Failed to fetch tasks:', error);
-      toast.error('Failed to load tasks');
+      console.error("Failed to fetch tasks:", error);
+      toast.error("Failed to load tasks");
     } finally {
       setLoading(false);
     }
   };
 
   const getTasksByStatus = (status) => {
-    return tasks.filter(task => {
-      const matchesStatus = task.status === status;
-      const matchesSearch = searchQuery === '' || 
-        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    return tasks.filter((task) => {
+      const normalizedStatus = task?.status
+        ?.toLowerCase()
+        ?.replace(/\s+/g, "_");
+
+      const matchesStatus = normalizedStatus === status;
+
+      const matchesSearch =
+        searchQuery === "" ||
+        task.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         task.description?.toLowerCase().includes(searchQuery.toLowerCase());
+
       return matchesStatus && matchesSearch;
     });
   };
 
   const columns = [
-    { status: 'pending', title: 'Pending', color: 'bg-gray-100', borderColor: 'border-gray-300' },
-    { status: 'in_progress', title: 'In Progress', color: 'bg-blue-50', borderColor: 'border-blue-300' },
-    { status: 'completed', title: 'Completed', color: 'bg-green-50', borderColor: 'border-green-300' }
+    {
+      status: "pending",
+      title: "Pending",
+      color: "bg-gray-100",
+      borderColor: "border-gray-300",
+    },
+    {
+      status: "in_progress",
+      title: "In Progress",
+      color: "bg-blue-50",
+      borderColor: "border-blue-300",
+    },
+    {
+      status: "completed",
+      title: "Completed",
+      color: "bg-green-50",
+      borderColor: "border-green-300",
+    },
   ];
 
   return (
@@ -59,7 +81,7 @@ const TaskBoard = () => {
             <p className="text-gray-600 mt-2">Manage tasks with Kanban view</p>
           </div>
           <button
-            onClick={() => navigate('/tasks/new')}
+            onClick={() => navigate("/tasks/new")}
             className="btn btn-primary mt-4 sm:mt-0 inline-flex items-center space-x-2"
           >
             <Plus size={18} />
@@ -70,7 +92,10 @@ const TaskBoard = () => {
         {/* Search and Filter */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={18}
+            />
             <input
               type="text"
               value={searchQuery}
@@ -90,11 +115,13 @@ const TaskBoard = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {columns.map(({ status, title, color, borderColor }) => {
               const columnTasks = getTasksByStatus(status);
-              
+
               return (
                 <div key={status} className="flex flex-col">
                   {/* Column Header */}
-                  <div className={`${color} rounded-t-xl border-2 ${borderColor} p-4`}>
+                  <div
+                    className={`${color} rounded-t-xl border-2 ${borderColor} p-4`}
+                  >
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-gray-900">{title}</h3>
                       <span className="badge bg-white text-gray-700">
@@ -104,7 +131,9 @@ const TaskBoard = () => {
                   </div>
 
                   {/* Column Content */}
-                  <div className={`flex-1 ${color} border-2 border-t-0 ${borderColor} rounded-b-xl p-4 min-h-[400px]`}>
+                  <div
+                    className={`flex-1 ${color} border-2 border-t-0 ${borderColor} rounded-b-xl p-4 min-h-[400px]`}
+                  >
                     <div className="space-y-4">
                       {columnTasks.length === 0 ? (
                         <div className="text-center py-8 text-gray-500 text-sm">
@@ -115,7 +144,9 @@ const TaskBoard = () => {
                           <TaskCard
                             key={task._id}
                             task={task}
-                            onClick={() => navigate(`/tasks/${task._id}/workspace`)}
+                            onClick={() =>
+                              navigate(`/tasks/${task._id}/workspace`)
+                            }
                           />
                         ))
                       )}
