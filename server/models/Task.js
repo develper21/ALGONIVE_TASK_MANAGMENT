@@ -42,6 +42,17 @@ const taskSchema = new mongoose.Schema({
   }],
   tags: [{
     type: String
+  }],
+  checklist: [{
+    text: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    completed: {
+      type: Boolean,
+      default: false
+    }
   }]
 }, {
   timestamps: true
