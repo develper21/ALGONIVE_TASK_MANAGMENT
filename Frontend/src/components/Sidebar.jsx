@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -6,58 +6,94 @@ import {
   PlusCircle,
   MessageSquare,
   Settings,
-  X
-} from 'lucide-react';
+  X,
+} from "lucide-react";
+import { useMessaging } from "../context/MessagingContext";
 
+// =========================
+// NAVIGATION ITEMS
+// =========================
 const navItems = [
   {
-    label: 'Dashboard',
-    to: '/dashboard',
-    icon: LayoutDashboard
+    label: "Dashboard",
+    to: "/dashboard",
+    icon: LayoutDashboard,
   },
   {
-    label: 'Teams',
-    to: '/teams',
-    icon: Users
+    label: "Teams",
+    to: "/teams",
+    icon: Users,
   },
   {
-    label: 'Task Board',
-    to: '/board',
-    icon: KanbanSquare
+    label: "Task Board",
+    to: "/board",
+    icon: KanbanSquare,
   },
   {
-    label: 'Create Task',
-    to: '/tasks/new',
-    icon: PlusCircle
+    label: "Create Task",
+    to: "/tasks/new",
+    icon: PlusCircle,
   },
   {
-    label: 'Messaging',
-    to: '/messaging',
-    icon: MessageSquare
-  }
+    label: "Messaging",
+    to: "/messaging",
+    icon: MessageSquare,
+    hasNotification: true,
+  },
 ];
 
-const SidebarNav = ({ onNavigate }) => (
+// =========================
+// SIDEBAR NAVIGATION
+// =========================
+const SidebarNav = ({ onNavigate, unreadMessageCount }) => (
   <nav className="space-y-2">
-    {navItems.map(({ label, to, icon: Icon }) => (
+    {navItems.map(({ label, to, icon: Icon, hasNotification }) => (
       <NavLink
         key={to}
         to={to}
         className={({ isActive }) =>
-          `flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors border border-transparent ${
+          `flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors border border-transparent ${
             isActive
-              ? 'bg-primary-50 text-primary-700 border-primary-100 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              ? "bg-primary-50 text-primary-700 border-primary-100 shadow-sm"
+              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
           }`
         }
-        onClick={onNavigate}>
-        <Icon size={18} />
-        <span>{label}</span>
+        onClick={onNavigate}
+      >
+        <div className="flex items-center space-x-3">
+          <Icon size={18} />
+          <span>{label}</span>
+        </div>
+
+        {/* Notification Badge */}
+        {hasNotification && unreadMessageCount > 0 && (
+          <span
+            className="
+                  min-w-[22px]
+                  h-[22px]
+                  px-1
+                  rounded-full
+                  bg-red-500
+                  text-white
+                  text-[11px]
+                  font-semibold
+                  flex
+                  items-center
+                  justify-center
+                  shadow-sm
+                "
+          >
+            {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+          </span>
+        )}
       </NavLink>
     ))}
   </nav>
 );
 
+// =========================
+// SETTINGS BUTTON
+// =========================
 const SettingsButton = ({ onNavigate }) => (
   <NavLink
     to="/settings"
@@ -65,66 +101,130 @@ const SettingsButton = ({ onNavigate }) => (
     className={({ isActive }) =>
       `flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors border ${
         isActive
-          ? 'bg-primary-50 text-primary-700 border-primary-100 shadow-sm'
-          : 'text-gray-700 border-gray-200 hover:bg-gray-50'
+          ? "bg-primary-50 text-primary-700 border-primary-100 shadow-sm"
+          : "text-gray-700 border-gray-200 hover:bg-gray-50"
       }`
-    }>
+    }
+  >
     <Settings size={18} />
+
     <div className="flex flex-col">
       <span>System Settings</span>
-      <span className="text-xs font-normal text-gray-500">Logic & security</span>
+
+      <span className="text-xs font-normal text-gray-500">
+        Logic & security
+      </span>
     </div>
   </NavLink>
 );
 
+// =========================
+// MAIN SIDEBAR
+// =========================
 const Sidebar = ({ isOpen, onClose }) => {
+  // =========================
+  // MESSAGING CONTEXT
+  // =========================
+  const { conversations } = useMessaging();
+
+  // =========================
+  // UNREAD COUNT
+  // =========================
+  const unreadMessageCount =
+    conversations?.reduce((total, conversation) => {
+      return total + (conversation?.unreadCount || 0);
+    }, 0) || 0;
+
   return (
     <>
+      {/* =========================
+          MOBILE OVERLAY
+      ========================= */}
       <div
         className={`fixed inset-0 bg-black/40 z-40 transition-opacity lg:hidden ${
-          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          isOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
         }`}
         onClick={onClose}
       />
 
+      {/* =========================
+          MOBILE SIDEBAR
+      ========================= */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 shadow-lg transform transition-transform lg:hidden ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}>
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center space-x-2">
             <div className="w-9 h-9 bg-gradient-to-br from-gray-50 to-gray-50 rounded-xl flex items-center justify-center">
-              <img src="/assets/Favicon.png" alt="Logo" className="w-7 h-7" onError={(e) => {e.target.src='/assets/Favicon-Bx4HgBxh.png'}} />
+              <img
+                src="/assets/Favicon.png"
+                alt="Logo"
+                className="w-7 h-7"
+                onError={(e) => {
+                  e.target.src = "/assets/Favicon-Bx4HgBxh.png";
+                }}
+              />
             </div>
+
             <span className="text-lg font-bold text-gray-900">TaskManager</span>
           </div>
+
           <button
             onClick={onClose}
             className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
-            aria-label="Close sidebar">
+            aria-label="Close sidebar"
+          >
             <X size={18} />
           </button>
         </div>
+
+        {/* Content */}
         <div className="px-4 py-6 overflow-y-auto h-full">
-          <SidebarNav onNavigate={onClose} />
+          <SidebarNav
+            onNavigate={onClose}
+            unreadMessageCount={unreadMessageCount}
+          />
+
           <div className="mt-6 border-t border-gray-200 pt-4">
             <SettingsButton onNavigate={onClose} />
           </div>
         </div>
       </aside>
 
+      {/* =========================
+          DESKTOP SIDEBAR
+      ========================= */}
       <aside className="hidden lg:flex lg:flex-col w-64 bg-white border-r border-gray-200 min-h-screen px-4 py-6">
+        {/* Logo */}
         <div className="flex items-center space-x-3 mb-8">
           <div className="w-10 h-10 bg-gradient-to-br from-black to-gray-100 rounded-md flex items-center justify-center">
-            <img src="/assets/Favicon.png" alt="Logo" className="w-8 h-8" onError={(e) => {e.target.src='/assets/Favicon-Bx4HgBxh.png'}} />
+            <img
+              src="/assets/Favicon.png"
+              alt="Logo"
+              className="w-8 h-8"
+              onError={(e) => {
+                e.target.src = "/assets/Favicon-Bx4HgBxh.png";
+              }}
+            />
           </div>
+
           <div>
             <p className="text-sm text-gray-500">Algonive</p>
+
             <p className="text-lg font-semibold text-gray-900">TaskManager</p>
           </div>
         </div>
+
+        {/* Navigation */}
         <div className="flex-1 flex flex-col">
-          <SidebarNav />
+          <SidebarNav unreadMessageCount={unreadMessageCount} />
+
+          {/* Settings */}
           <div className="mt-auto pt-6 border-t border-gray-100">
             <SettingsButton />
           </div>
