@@ -42,6 +42,9 @@ const attachmentUpload = multer({
   }
 });
 
+const idsEqual = (a, b) => a?.toString() === b?.toString();
+const includesId = (ids = [], id) => ids.some((item) => idsEqual(item, id));
+
 const requireTaskAccess = async (taskId, user) => {
   const task = await Task.findById(taskId).populate('team', 'members name color');
   if (!task) {
@@ -51,8 +54,8 @@ const requireTaskAccess = async (taskId, user) => {
   }
 
   const userId = user._id.toString();
-  const isMember = task.team?.members?.some((memberId) => memberId.toString() === userId);
-  const isCreator = task.createdBy.toString() === userId;
+  const isMember = includesId(task.team?.members, userId);
+  const isCreator = idsEqual(task.createdBy, userId);
 
   if (!isMember && !isCreator && user.role !== 'admin') {
     const error = new Error('Access denied');
@@ -192,7 +195,7 @@ router.post('/',
       });
     }
 
-    if (!teamDoc.members.includes(req.user._id) && req.user.role !== 'admin') {
+    if (!includesId(teamDoc.members, req.user._id) && req.user.role !== 'admin') {
       return res.status(403).json({ 
         success: false, 
         message: 'You are not a member of this team' 
@@ -200,7 +203,7 @@ router.post('/',
     }
 
     // Verify assignee is a team member
-    if (assignee && !teamDoc.members.includes(assignee)) {
+    if (assignee && !includesId(teamDoc.members, assignee)) {
       return res.status(400).json({ 
         success: false, 
         message: 'Assignee must be a team member' 
@@ -231,7 +234,8 @@ router.post('/',
       status
     });
 
-    // Invalidate team cache
+    // Invalidate task/team/user caches so newly created tasks show immediately.
+    await cacheInvalidation.invalidateTask(task);
     await cacheInvalidation.invalidateTeam(team);
 
     await recordTaskActivity({
@@ -290,6 +294,66 @@ router.post('/',
   })
 );
 
+// @route   GET /api/tasks/stats/dashboard
+// @desc    Get dashboard task statistics for current user
+// @access  Private
+router.get('/stats/dashboard',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id).select('teams role');
+    const baseQuery = user.role === 'admin' ? {} : { team: { $in: user.teams || [] } };
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+    const [byStatus, myTasks, overdueTasks, statusHistory] = await Promise.all([
+      Task.aggregate([
+        { $match: baseQuery },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]),
+      Task.countDocuments({
+        ...baseQuery,
+        assignee: req.user._id,
+        status: { $ne: 'completed' }
+      }),
+      Task.countDocuments({
+        ...baseQuery,
+        dueDate: { $lt: now },
+        status: { $ne: 'completed' }
+      }),
+      Task.aggregate([
+        {
+          $match: {
+            ...baseQuery,
+            createdAt: { $gte: thirtyDaysAgo }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } },
+        { $project: { _id: 0, date: '$_id', count: 1 } }
+      ])
+    ]);
+
+    res.json({
+      success: true,
+      stats: {
+        byStatus,
+        myTasks,
+        overdueTasks,
+        statusHistory
+      }
+    });
+  })
+);
+
 // @route   GET /api/tasks/activity/feed
 // @desc    Get recent task activity for user's teams
 // @access  Private
@@ -303,10 +367,10 @@ router.get('/activity/feed',
     let activities = await cache.get(cacheKey);
     
     if (!activities) {
-      const user = await User.findById(req.user._id).populate('teams');
-      const userTeamIds = user.teams.map(t => t._id);
+      const user = await User.findById(req.user._id).select('teams role');
+      const activityQuery = user.role === 'admin' ? {} : { team: { $in: user.teams || [] } };
 
-      activities = await TaskActivity.find({ team: { $in: userTeamIds } })
+      activities = await TaskActivity.find(activityQuery)
         .sort({ createdAt: -1 })
         .limit(Math.min(parseInt(limit, 10) || 25, 100))
         .populate('task', 'title status priority assignee')
@@ -350,15 +414,16 @@ router.get('/',
 
     // If no specific team, get user's teams and filter
     if (!team) {
-      const user = await User.findById(req.user._id).populate('teams');
-      const userTeamIds = user.teams.map(t => t._id);
+      const user = await User.findById(req.user._id).select('teams role');
       
-      // Update query to include user's teams
-      optimizedQuery.query.team = { $in: userTeamIds };
+      // Update query to include user's teams. Admins can see all tasks.
+      if (user.role !== 'admin') {
+        optimizedQuery.query.team = { $in: user.teams || [] };
+      }
     } else {
       // Verify user has access to specified team
       const teamDoc = await Team.findById(team);
-      if (!teamDoc || (!teamDoc.members.includes(req.user._id) && req.user.role !== 'admin')) {
+      if (!teamDoc || (!includesId(teamDoc.members, req.user._id) && req.user.role !== 'admin')) {
         return res.status(403).json({
           success: false,
           message: 'Access denied to this team'
@@ -379,20 +444,11 @@ router.get('/',
       ];
     }
 
-    // Try cache first
-    const cacheKey = cacheKeys.userTasks(req.user._id, req.query);
-    let tasks = await cache.get(cacheKey);
-
-    if (!tasks) {
-      tasks = await Task.find(optimizedQuery.query)
-        .sort(optimizedQuery.options.sort)
-        .limit(optimizedQuery.options.limit)
-        .skip(optimizedQuery.options.skip)
-        .populate(optimizedQuery.options.populate);
-      
-      // Cache for 10 minutes
-      await cache.set(cacheKey, tasks, 600);
-    }
+    const tasks = await Task.find(optimizedQuery.query)
+      .sort(optimizedQuery.options.sort)
+      .limit(optimizedQuery.options.limit)
+      .skip(optimizedQuery.options.skip)
+      .populate(optimizedQuery.options.populate);
 
     const total = await Task.countDocuments(optimizedQuery.query);
 
@@ -424,8 +480,7 @@ router.get('/:id',
       task = await Task.findById(req.params.id)
         .populate('createdBy', 'name email')
         .populate('assignee', 'name email avatar')
-        .populate('team', 'name color members')
-        .populate('attachments');
+        .populate('team', 'name color members');
       
       if (!task) {
         return res.status(404).json({
@@ -436,9 +491,9 @@ router.get('/:id',
 
       // Check access
       const userId = req.user._id.toString();
-      const isMember = task.team?.members?.some((memberId) => memberId.toString() === userId);
-      const isCreator = task.createdBy._id.toString() === userId;
-      const isAssignee = task.assignee?._id?.toString() === userId;
+      const isMember = includesId(task.team?.members, userId);
+      const isCreator = idsEqual(task.createdBy?._id || task.createdBy, userId);
+      const isAssignee = idsEqual(task.assignee?._id || task.assignee, userId);
 
       if (!isMember && !isCreator && !isAssignee && req.user.role !== 'admin') {
         return res.status(403).json({
@@ -501,7 +556,9 @@ router.put('/:id',
         action: 'status_changed',
         metadata: {
           oldStatus,
-          newStatus: updates.status
+          newStatus: updates.status,
+          fromStatus: oldStatus,
+          toStatus: updates.status
         }
       });
     }
@@ -619,7 +676,9 @@ router.patch('/:id/status',
       action: 'status_changed',
       metadata: {
         oldStatus,
-        newStatus: status
+        newStatus: status,
+        fromStatus: oldStatus,
+        toStatus: status
       }
     });
     
