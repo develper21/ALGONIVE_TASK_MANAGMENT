@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { taskAPI, teamAPI } from '../services/api';
 import Layout from '../components/Layout';
-import { Save, ArrowLeft, Trash2, Loader2 } from 'lucide-react';
+import { Save, ArrowLeft, Trash2, Loader2, Plus, X, UploadCloud, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const TaskForm = () => {
@@ -23,6 +23,8 @@ const TaskForm = () => {
 
   const [teams, setTeams] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [checklist, setChecklist] = useState([{ text: '', completed: false }]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -63,6 +65,14 @@ const TaskForm = () => {
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
         tags: task.tags?.join(', ') || ''
       });
+      setChecklist(
+        task.checklist?.length
+          ? task.checklist.map((item) => ({
+              text: item.text || '',
+              completed: Boolean(item.completed)
+            }))
+          : [{ text: '', completed: false }]
+      );
     } catch (error) {
       console.error('Failed to fetch task:', error);
       toast.error('Failed to load task');
@@ -85,25 +95,93 @@ const TaskForm = () => {
 
     try {
       const taskData = {
-        ...formData,
-        tags: formData.tags.split(',').map(t => t.trim()).filter(t => t)
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        team: formData.team,
+        status: formData.status,
+        priority: formData.priority,
+        tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
+        checklist: checklist
+          .map((item) => ({ text: item.text.trim(), completed: item.completed }))
+          .filter((item) => item.text)
       };
+
+      if (formData.assignee) {
+        taskData.assignee = formData.assignee;
+      }
+
+      if (formData.dueDate) {
+        taskData.dueDate = formData.dueDate;
+      }
+
+      let savedTaskId = id;
 
       if (isEdit) {
         await taskAPI.update(id, taskData);
         toast.success('Task updated successfully');
       } else {
-        await taskAPI.create(taskData);
+        const response = await taskAPI.create(taskData);
+        savedTaskId = response.data.task._id;
         toast.success('Task created successfully');
       }
 
-      navigate('/dashboard');
+      if (selectedFiles.length > 0 && savedTaskId) {
+        const uploadData = new FormData();
+        selectedFiles.forEach((file) => uploadData.append('files', file));
+        await taskAPI.uploadAttachments(savedTaskId, uploadData);
+        toast.success('Documents uploaded successfully');
+      }
+
+      navigate(savedTaskId ? `/tasks/${savedTaskId}/workspace` : '/dashboard');
     } catch (error) {
       console.error('Failed to save task:', error);
       toast.error(error.response?.data?.message || 'Failed to save task');
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateChecklistItem = (index, updates) => {
+    setChecklist((items) =>
+      items.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...updates } : item
+      )
+    );
+  };
+
+  const addChecklistItem = () => {
+    setChecklist((items) => [...items, { text: '', completed: false }]);
+  };
+
+  const removeChecklistItem = (index) => {
+    setChecklist((items) =>
+      items.length === 1 ? [{ text: '', completed: false }] : items.filter((_, itemIndex) => itemIndex !== index)
+    );
+  };
+
+  const handleFileSelect = (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+
+    setSelectedFiles((current) => {
+      const existing = new Set(current.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
+      const next = [...current];
+
+      files.forEach((file) => {
+        const key = `${file.name}-${file.size}-${file.lastModified}`;
+        if (!existing.has(key)) {
+          next.push(file);
+        }
+      });
+
+      return next;
+    });
+
+    event.target.value = '';
+  };
+
+  const removeSelectedFile = (index) => {
+    setSelectedFiles((files) => files.filter((_, fileIndex) => fileIndex !== index));
   };
 
   const handleDelete = async () => {
@@ -280,16 +358,80 @@ const TaskForm = () => {
                   <p className="text-sm font-medium text-gray-700">Checklist</p>
                   <p className="text-xs text-gray-500">Ensure the brief is actionable before publishing.</p>
                 </div>
-                <ul className="space-y-3 text-sm text-gray-600">
-                  <li>• Add context and links to specs</li>
-                  <li>• Confirm owner & stakeholders</li>
-                  <li>• Attach timelines and SLA expectations</li>
-                </ul>
+                <div className="space-y-3">
+                  {checklist.map((item, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={item.completed}
+                        onChange={(e) => updateChecklistItem(index, { completed: e.target.checked })}
+                        className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        aria-label="Checklist item completed"
+                      />
+                      <input
+                        type="text"
+                        value={item.text}
+                        onChange={(e) => updateChecklistItem(index, { text: e.target.value })}
+                        className="input py-2 text-sm"
+                        placeholder="Add checklist item"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeChecklistItem(index)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+                        aria-label="Remove checklist item"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={addChecklistItem}
+                  className="btn btn-secondary w-full inline-flex items-center justify-center gap-2"
+                >
+                  <Plus size={16} />
+                  <span>Add checklist item</span>
+                </button>
               </div>
 
-              <div className="card bg-gray-50 space-y-3">
-                <p className="text-sm font-semibold text-gray-800">Need to upload briefs?</p>
-                <p className="text-sm text-gray-600">Attach PDFs, Loom links, or PRDs after creating the task from the workspace view.</p>
+              <div className="card bg-gray-50 space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Upload documents</p>
+                  <p className="text-sm text-gray-600">Attach PDFs, images, docs, or code files while creating this task.</p>
+                </div>
+                <label className="flex flex-col items-center justify-center gap-2 border border-dashed border-gray-300 rounded-2xl px-4 py-6 cursor-pointer bg-white hover:border-gray-400">
+                  <UploadCloud size={22} className="text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">Choose files</span>
+                  <span className="text-xs text-gray-500">Up to 25MB per file</span>
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileSelect}
+                  />
+                </label>
+                {selectedFiles.length > 0 && (
+                  <div className="space-y-2">
+                    {selectedFiles.map((file, index) => (
+                      <div key={`${file.name}-${file.lastModified}`} className="flex items-center justify-between gap-3 rounded-xl bg-white border border-gray-200 px-3 py-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText size={16} className="text-gray-500 shrink-0" />
+                          <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeSelectedFile(index)}
+                          className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"
+                          aria-label={`Remove ${file.name}`}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </aside>
           </div>
