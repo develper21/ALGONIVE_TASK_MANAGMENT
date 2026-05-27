@@ -58,7 +58,7 @@ export const securityMiddleware = (req, res, next) => {
   }
   
   // Add custom security headers
-  res.setHeader('X-Response-Time', Date.now() - req.startTime);
+  res.setHeader('X-Response-Time', Date.now() - (req.startTime || Date.now()));
   res.setHeader('X-Powered-By', 'Algonive');
   
   // Remove server information
