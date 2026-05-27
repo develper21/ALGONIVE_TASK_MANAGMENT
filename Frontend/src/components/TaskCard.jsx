@@ -30,6 +30,8 @@ const TaskCard = ({ task, onClick }) => {
 
   const isOverdue = task.dueDate && isPast(new Date(task.dueDate)) && task.status !== 'completed';
   const daysUntilDue = task.dueDate ? differenceInDays(new Date(task.dueDate), new Date()) : null;
+  const checklistCount = task.checklist?.length || 0;
+  const completedChecklistCount = task.checklist?.filter((item) => item.completed).length || 0;
 
   return (
     <div
@@ -54,6 +56,21 @@ const TaskCard = ({ task, onClick }) => {
               {tag}
             </span>
           ))}
+        </div>
+      )}
+
+      {checklistCount > 0 && (
+        <div className="mb-3">
+          <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+            <span>Checklist</span>
+            <span>{completedChecklistCount}/{checklistCount}</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+            <div
+              className="h-full bg-green-500"
+              style={{ width: `${(completedChecklistCount / checklistCount) * 100}%` }}
+            />
+          </div>
         </div>
       )}
 
