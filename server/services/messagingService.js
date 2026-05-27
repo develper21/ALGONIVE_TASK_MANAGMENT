@@ -118,11 +118,11 @@ export const persistEncryptedMessage = async ({
   }
 
   const normalizedRecipients = normalizeObjectIdList(recipients);
-  if (!normalizedRecipients.length) {
+  const requiredRecipients = allowedParticipantIds.filter((id) => id !== senderId);
+
+  if (requiredRecipients.length > 0 && !normalizedRecipients.length) {
     throw new Error('Recipients are required');
   }
-
-  const requiredRecipients = allowedParticipantIds.filter((id) => id !== senderId);
 
   const missingRecipients = requiredRecipients.filter((id) => !normalizedRecipients.includes(id));
   if (missingRecipients.length) {
