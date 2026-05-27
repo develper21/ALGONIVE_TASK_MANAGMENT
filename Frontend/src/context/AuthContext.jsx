@@ -55,9 +55,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signup = async (name, email, password, role = 'member') => {
+  const signup = async (name, email, password, role = 'member', adminInviteToken = '') => {
     try {
-      const response = await authAPI.signup({ name, email, password, role });
+      const payload = { name, email, password, role };
+
+      if (role === 'admin') {
+        payload.adminInviteToken = adminInviteToken;
+      }
+
+      const response = await authAPI.signup(payload);
       const { token, user } = response.data;
       
       localStorage.setItem('token', token);
